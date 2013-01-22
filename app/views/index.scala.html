@@ -1,0 +1,12 @@
+@main("REPL") {
+  @helper.form(routes.Application.eval) {
+    <textarea id="console" cols="100" rows="50" name="code"></textarea>
+    <input type="submit" value="Eval">
+  }
+  <div id="result">
+    <div>3</div>
+    <div>a = 4</div>
+    <div>b = 10</div>
+    <div>c = 2</div>
+  </div>
+}
