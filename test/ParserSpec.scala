@@ -9,13 +9,14 @@ class ParserSpec extends Specification {
 
     "parse a simple numerical expression" in {
       val expression = "32"
-      Parser.parseSingleStatement(expression) must be equalTo NumberLiteral(32)
+      Parser.parseSingleStatement(expression) must be equalTo ObjectExpression(Number_(32))
     }
     
     "parse a simple addition expression" in {
       val expression = "+(7, 4)"
       val actual = Parser.parseSingleStatement(expression)
-      actual must be equalTo FunctionCall("+", List(NumberLiteral(7), NumberLiteral(4)))
+      val expectedArguments = List(ObjectExpression(Number_(7)), ObjectExpression(Number_(4)))
+      actual must be equalTo Application(Reference("+"), expectedArguments)
     }
     
     "determine length of parentheses construction" in {

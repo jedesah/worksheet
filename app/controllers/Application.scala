@@ -3,6 +3,8 @@ package controllers
 import play.api._
 import play.api.mvc._
 
+import models.AST._
+
 object Application extends Controller {
   
   def index = Action {
@@ -10,8 +12,11 @@ object Application extends Controller {
   }
   
   def eval = Action { request =>
-    println(request.body.asFormUrlEncoded.get("code"))
-    Ok(views.html.index())
+    val code = request.body.asFormUrlEncoded.get("code").head
+
+    val results = WorkSheet.computeResults(code)
+
+    Ok(views.html.index(code, results))
   }
   
   /*def update = WebSocket.using[String]*/

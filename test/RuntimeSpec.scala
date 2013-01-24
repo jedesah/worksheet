@@ -9,13 +9,14 @@ class RuntimeSpec extends Specification {
   "Runtime" should {
     
     "evaluate a simple numerical expression" in {
-      val expression = NumberLiteral(2.0)
-      expression.evaluate() must be equalTo(NumberLiteral(2.0))
+      val expression = ObjectExpression(Number_(2.0))
+      expression.evaluate() must be equalTo Number_(2.0)
     }
     
     "evaluate a simple addition expression" in {
-      val expression = FunctionCall("+", List(NumberLiteral(23.0), NumberLiteral(5.0)))
-      Runtime.evaluate(expression) must be equalTo(NumberLiteral(28.0))
+      val arguments = List(ObjectExpression(Number_(5.0)))
+      val expression = Application(Reference("+", Some(ObjectExpression(Number_(23.0)))), arguments)
+      expression.evaluate() must be equalTo Number_(28.0)
     }
   }
 }

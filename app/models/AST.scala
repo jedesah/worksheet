@@ -2,52 +2,69 @@ package models.AST
 
 trait Statement
 
-trait Expression extends Statement with Result {
-  def evaluate(assignements: Map[String, Expression] = Map()): Result
-}
+case class Assignement(name: String, value: Expression) extends Statement
 
-trait SimpleExpression extends Expression {
-  override def evaluate(assignements: Map[String, Expression]) = this
+trait Expression extends Statement {
+  def evaluate(assignements: Map[String, Object_] = Map()): Object_
 }
 
 case class UncompiledExpression(content: String) extends Expression {
-  def evaluate(assignements: Map[String, Expression]) = {
+  def evaluate(assignements: Map[String, Object_]) = {
     Parser.parseSingleStatement(content).asInstanceOf[Expression].evaluate(assignements)
   }
 }
 
-case class Assignement(name: String, value: Expression) extends Statement
+case class ObjectExpression(object_ : Object_) extends Expression {
+  def evaluate(assignements: Map[String, Object_]) = object_
+}
 
-case class FunctionCall(name: String, arguments: List[Expression]) extends Expression {
-  def evaluate(assignements: Map[String, Expression]): Result = {
-    val function = assignements(name)
-    function match {
-      case Addition => {
-	val value = (arguments map { argument: Expression =>
-	  argument match {
-	    case NumberLiteral(x) => x
-	    case _ => 0
-	  }
-	}).sum
-	NumberLiteral(value)
-      }
-      case UserFunction(arguments, content) => content.last.asInstanceOf[Expression].evaluate()
-      case _ => new Error
+case class Reference(name: String, parent: Option[Expression] = None) extends Expression {
+  def evaluate(assignements: Map[String, Object_]) = {
+    parent match {
+      case Some(parent) => parent.evaluate(assignements).members(name)
+      case None => assignements(name)
     }
   }
 }
-case class NumberLiteral(value: Double) extends SimpleExpression
-case class Reference(name: String) extends Expression {
-  def evaluate(assignements: Map[String, Expression]) = assignements(name)
+
+case class Application(reference: Expression, arguments: List[Expression]) extends Expression {
+  def evaluate(assignements: Map[String, Object_]) = {
+    reference.evaluate(assignements) match {
+      case function: Function => function.apply_(arguments.map(_.evaluate(assignements)))
+      case object_ => object_.members("()").asInstanceOf[Function].apply_(arguments.map(_.evaluate(assignements)))
+    }
+  }
 }
-trait Function extends SimpleExpression
-case class UserFunction(arguments: List[Argument], content: List[Statement]) extends Function
-object Addition extends Function
 
-case class Argument(name: String)
+trait Object_ {
+  def members: Map[String, Object_]
+}
 
-trait Result
-class Error extends Result
+trait Function extends Object_ {
+  def apply_(arguments: List[Object_]): Object_
+}
+
+abstract class Method(this_ : Object_) extends Function {
+  def apply_(arguments: List[Object_]) = applyMethod(this_ :: arguments)
+  def applyMethod(arguments: List[Object_]): Object_
+}
+
+case class Addition(this_ : Object_) extends Method(this_) {
+  def applyMethod(arguments: List[Object_]) = {
+    val values = for( argument <- arguments) yield argument match {
+      case Number_(value) => value
+      case _ => throw new Exception()
+    }
+    Number_(values.sum)
+  }
+  
+  def members = Map()
+}
+case class Number_(value: Double) extends Object_
+{
+  def members = Map("+" -> Addition(this))
+  override def toString = value.toString
+}
 
 object Parser {
   def parse(content: String): List[Statement] = {
@@ -61,19 +78,19 @@ object Parser {
       val words = content.split(' ')
       if (words.length == 1) {
 	try {
-	  NumberLiteral(words.head.toDouble)
+	  ObjectExpression(Number_(words.head.toDouble))
 	} catch {
 	  case _: NumberFormatException => Reference(words.head)
 	}
       }
-      else if (words(1) == ":=") Assignement(words(0), UncompiledExpression(words.drop(2).mkString(" ")))
+      else if (words(1) == ":=") Assignement(words(0), parseSingleStatement(words.drop(2).mkString(" ")).asInstanceOf[Expression])
       else {
 	if (words.head.contains('(')) {
 	  val (name, rest) = content.span(_ != '(')
 	  val paramsString = rest.drop(1)
 	  val length = findLengthBeforeClosingParentheses(paramsString)
 	  val parameters = paramsString.take(length).split(',').map( argExprString => parseSingleStatement(argExprString.trim).asInstanceOf[Expression]).toList
-	  FunctionCall(name, parameters)
+	  Application(Reference(name), parameters)
 	}
 	else throw UnexpectedTokenError(words.tail.toList)
       }
@@ -99,9 +116,20 @@ object Parser {
   case class UnexpectedTokenError(tokens: List[String]) extends Throwable
 }
 
-object Runtime {
- 
-  val baseLanguage = Map("+" -> Addition)
-
-  def evaluate(expr: Expression) = expr.evaluate(baseLanguage)
+object WorkSheet {
+  def computeResults(code: String): List[String] = {
+    val statements = Parser.parse(code)
+    
+    var assignements: Map[String, Object_] = Map()
+    
+    for (statement <- statements) yield {
+      statement match {
+	case x: Assignement => {
+	  assignements = assignements + (x.name -> x.value.evaluate(assignements))
+	  x.name + " = " + x.value.evaluate(assignements).toString
+	}
+	case x: Expression => x.evaluate(assignements).toString
+      }
+    }
+  }
 }
