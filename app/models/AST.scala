@@ -69,7 +69,7 @@ case class Number_(value: Double) extends Object_
 object Parser {
   def parse(content: String): List[Statement] = {
     val lines = content.split('\n')
-    for (line <- lines) yield parseSingleStatement(line)
+    for (line <- lines if line != "") yield parseSingleStatement(line)
   }.toList
       
   def parseSingleStatement(content: String): Statement = {
