@@ -9,7 +9,7 @@ class WorkSheetSpec extends Specification {
   "WorkSheet" should {
 
     "compute a simple numerical expression" in {
-      val code = "+(7, 4)"
+      val code = "7.+(4)"
       
       WorkSheet.computeResults(code) must be equalTo List("11")
     }

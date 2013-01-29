@@ -9,9 +9,8 @@ trait Expression extends Statement {
 }
 
 case class UncompiledExpression(content: String) extends Expression {
-  def evaluate(assignements: Map[String, Object_]) = {
+  def evaluate(assignements: Map[String, Object_]) =
     Parser.parseSingleStatement(content).asInstanceOf[Expression].evaluate(assignements)
-  }
 }
 
 case class ObjectExpression(object_ : Object_) extends Expression {
@@ -74,46 +73,45 @@ object Parser {
       
   def parseSingleStatement(content: String): Statement = {
     if (content.contains('\n')) throw new UnexpectedEndOfLineError
-    else {
-      val words = content.split(' ')
-      if (words.length == 1) {
-	try {
-	  ObjectExpression(Number_(words.head.toDouble))
-	} catch {
-	  case _: NumberFormatException => Reference(words.head)
-	}
+    class UnexpectedEndOfLineError extends Exception
+    import scala.util.parsing.combinator._
+
+    object Expression extends RegexParsers {
+
+      val integer = """[1-9][0-9]*"""r
+      
+      val identifier = """[a-zA-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*"""r
+
+      def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
+	case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
       }
-      else if (words(1) == ":=") Assignement(words(0), parseSingleStatement(words.drop(2).mkString(" ")).asInstanceOf[Expression])
-      else {
-	if (words.head.contains('(')) {
-	  val (name, rest) = content.span(_ != '(')
-	  val paramsString = rest.drop(1)
-	  val length = findLengthBeforeClosingParentheses(paramsString)
-	  val parameters = paramsString.take(length).split(',').map( argExprString => parseSingleStatement(argExprString.trim).asInstanceOf[Expression]).toList
-	  Application(Reference(name), parameters)
-	}
-	else throw UnexpectedTokenError(words.tail.toList)
+
+      def statement = assignement | expression
+      
+      def assignement = ("."r) ~ ":=" ~ expression ^^ {
+	case (name ~ ":=" ~ expression) => Assignement(name, expression)
       }
+      
+      def reference: Parser[Reference] = identifier ~ "." ~ reference ^^ {
+	  case (name ~ "." ~ reference) => Reference(reference.name, Some(Reference(name, reference.parent)))
+	} | identifier ^^ {
+	  case (name) => Reference(name)
+	}
+      
+      def expression: Parser[Expression] = function_call | number | reference
+      
+      def number = (reel | integer) ^^ (n => ObjectExpression(Number_(n.toDouble)))
+      
+      def function_call = reference ~ ("(" ~> repsep(expression, ",") <~ ")") ^^ {
+	case (reference ~ params) => Application(reference, params)
+      }
+      
     }
-  }
-  
-  def findLengthBeforeClosingParentheses(content: String): Int = {
-    var stack = 0
-    for ((ch, i) <- content.zipWithIndex) {
-      if (ch == ')') {
-	if (stack == 0) {
-	  return i
-	}
-	else stack = stack - 1
-      }
-      else if (ch == '(') stack = stack + 1
-    }
-    throw UnclosedParenthesesError(stack + 1)
-  }
     
-  case class UnclosedParenthesesError(amount: Int) extends Exception
-  class UnexpectedEndOfLineError extends Exception
-  case class UnexpectedTokenError(tokens: List[String]) extends Throwable
+    Expression.parseAll(Expression.statement, content) match {
+      case Expression.Success(s, in) => s
+    }
+  }
 }
 
 object WorkSheet {

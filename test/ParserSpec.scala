@@ -13,17 +13,10 @@ class ParserSpec extends Specification {
     }
     
     "parse a simple addition expression" in {
-      val expression = "+(7, 4)"
+      val expression = "7.+(4)"
       val actual = Parser.parseSingleStatement(expression)
       val expectedArguments = List(ObjectExpression(Number_(7)), ObjectExpression(Number_(4)))
       actual must be equalTo Application(Reference("+"), expectedArguments)
-    }
-    
-    "determine length of parentheses construction" in {
-      val expression = "-(7,4)"
-      val length = Parser.findLengthBeforeClosingParentheses(expression.drop(2))
-      val actual = expression.slice(2, 2 + length)
-      actual must be equalTo "7,4"
     }
   }
 }
