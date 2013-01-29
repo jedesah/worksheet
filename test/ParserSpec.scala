@@ -15,8 +15,8 @@ class ParserSpec extends Specification {
     "parse a simple addition expression" in {
       val expression = "7.+(4)"
       val actual = Parser.parseSingleStatement(expression)
-      val expectedArguments = List(ObjectExpression(Number_(7)), ObjectExpression(Number_(4)))
-      actual must be equalTo Application(Reference("+"), expectedArguments)
+      val expectedArguments = List(ObjectExpression(Number_(4)))
+      actual must be equalTo Application(Reference("+", Some(ObjectExpression(Number_(7)))), expectedArguments)
     }
   }
 }

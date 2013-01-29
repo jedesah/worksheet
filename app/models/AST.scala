@@ -62,7 +62,7 @@ case class Addition(this_ : Object_) extends Method(this_) {
 case class Number_(value: Double) extends Object_
 {
   def members = Map("+" -> Addition(this))
-  override def toString = value.toString
+  override def toString = if (value.isValidInt) value.toInt.toString else value.toString
 }
 
 object Parser {
@@ -76,11 +76,11 @@ object Parser {
     class UnexpectedEndOfLineError extends Exception
     import scala.util.parsing.combinator._
 
-    object Expression extends RegexParsers {
+    object Expression extends RegexParsers with PackratParsers {
 
       val integer = """[1-9][0-9]*"""r
       
-      val identifier = """[a-zA-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*"""r
+      val identifier = """[a-zA-Z+*-]([a-zA-Z0-9+*-]|_[a-zA-Z0-9])*"""r
 
       def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
 	case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
@@ -88,21 +88,21 @@ object Parser {
 
       def statement = assignement | expression
       
-      def assignement = ("."r) ~ ":=" ~ expression ^^ {
+      def assignement = identifier ~ ":=" ~ expression ^^ {
 	case (name ~ ":=" ~ expression) => Assignement(name, expression)
       }
       
-      def reference: Parser[Reference] = identifier ~ "." ~ reference ^^ {
-	  case (name ~ "." ~ reference) => Reference(reference.name, Some(Reference(name, reference.parent)))
+      lazy val reference: PackratParser[Reference] = expression ~ "." ~ identifier ^^ {
+	  case (expression ~ "." ~ name) => Reference(name, Some(expression))
 	} | identifier ^^ {
 	  case (name) => Reference(name)
 	}
       
-      def expression: Parser[Expression] = function_call | number | reference
+      lazy val expression: PackratParser[Expression] = function_call | number | reference
       
       def number = (reel | integer) ^^ (n => ObjectExpression(Number_(n.toDouble)))
       
-      def function_call = reference ~ ("(" ~> repsep(expression, ",") <~ ")") ^^ {
+      lazy val function_call: PackratParser[Application] = reference ~ ("(" ~> repsep(expression, ",") <~ ")") ^^ {
 	case (reference ~ params) => Application(reference, params)
       }
       
