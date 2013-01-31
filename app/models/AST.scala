@@ -21,10 +21,12 @@ case class Reference(name: String, parent: Option[Expression] = None) extends Ex
   def evaluate(assignements: Map[String, Object_]) = {
     parent match {
       case Some(parent) => parent.evaluate(assignements).members(name)
-      case None => assignements(name)
+      case None => try {assignements(name)} catch { case e: NoSuchElementException => throw new InvalidReferenceException(name) }
     }
   }
 }
+
+case class InvalidReferenceException(name: String) extends Exception
 
 case class Application(reference: Expression, arguments: List[Expression]) extends Expression {
   def evaluate(assignements: Map[String, Object_]) = {
@@ -110,23 +112,32 @@ object Parser {
     
     Expression.parseAll(Expression.statement, content) match {
       case Expression.Success(s, in) => s
+      case Expression.Error(_, _) => throw new ParseException
+      case Expression.NoSuccess(_, _) => throw new ParseException
     }
   }
 }
 
+class ParseException extends Exception
+
 object WorkSheet {
   def computeResults(code: String): List[String] = {
-    val statements = Parser.parse(code)
-    
+  
     var assignements: Map[String, Object_] = Map()
-    
-    for (statement <- statements) yield {
-      statement match {
-	case x: Assignement => {
-	  assignements = assignements + (x.name -> x.value.evaluate(assignements))
-	  x.name + " = " + x.value.evaluate(assignements).toString
+  
+    code.split('\n').toList.map{ line =>
+      if (line == "") ""
+      else try {
+	Parser.parseSingleStatement(line) match {
+	  case x: Assignement => {
+	    assignements = assignements + (x.name -> x.value.evaluate(assignements))
+	    x.name + " = " + x.value.evaluate(assignements).toString
+	  }
+	  case x: Expression => x.evaluate(assignements).toString
 	}
-	case x: Expression => x.evaluate(assignements).toString
+      } catch {
+	case e: ParseException => "invalid expression"
+	case InvalidReferenceException(name) => s"invalid reference: $name is not found"
       }
     }
   }

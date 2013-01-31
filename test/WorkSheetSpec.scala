@@ -13,5 +13,17 @@ class WorkSheetSpec extends Specification {
       
       WorkSheet.computeResults(code) must be equalTo List("11")
     }
+    
+    "handle an incorrect expression" in {
+      val code = "7."
+      
+      WorkSheet.computeResults(code) must be equalTo List("invalid expression")
+    }
+    
+    "handle an invalid reference" in {
+      val code = "a"
+      
+      WorkSheet.computeResults(code) must be equalTo List("invalid reference: a is not found")
+    }
   }
 }
