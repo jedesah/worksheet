@@ -9,14 +9,24 @@ class ParserSpec extends Specification {
 
     "parse a simple numerical expression" in {
       val expression = "32"
-      Parser.parseSingleStatement(expression) must be equalTo ObjectExpression(Number_(32))
+      Parser.parseSingleValidStatement(expression) must be equalTo ObjectExpression(Number_(32))
+    }
+    
+    def additionExpression(first: Double, second: Double) = {
+      val params = List(ObjectExpression(Number_(second)))
+      Application(Reference("+", Some(ObjectExpression(Number_(first)))), params)
     }
     
     "parse a simple addition expression" in {
       val expression = "7.+(4)"
-      val actual = Parser.parseSingleStatement(expression)
-      val expectedArguments = List(ObjectExpression(Number_(4)))
-      actual must be equalTo Application(Reference("+", Some(ObjectExpression(Number_(7)))), expectedArguments)
+      val actual = Parser.parseSingleValidStatement(expression)
+      actual must be equalTo additionExpression(7, 4)
     }
+    
+    "parse an infix operator notation addition expression" in {
+      val expression = "7 + 4"
+      val actual = Parser.parseSingleValidStatement(expression)
+      actual must be equalTo additionExpression(7, 4)
+     }
   }
 }

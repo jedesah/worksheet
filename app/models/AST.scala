@@ -70,55 +70,59 @@ case class Number_(value: Double) extends Object_
 object Parser {
   def parse(content: String): List[Statement] = {
     val lines = content.split('\n')
-    for (line <- lines if line != "") yield parseSingleStatement(line)
+    for (line <- lines if line != "") yield parseSingleStatement(line) match {
+      case Expression.Success(stat, _) => stat
+    }
   }.toList
       
-  def parseSingleStatement(content: String): Statement = {
+  def parseSingleStatement(content: String) = {
     if (content.contains('\n')) throw new UnexpectedEndOfLineError
-    class UnexpectedEndOfLineError extends Exception
-    import scala.util.parsing.combinator._
-
-    object Expression extends RegexParsers with PackratParsers {
-
-      val integer = """[1-9][0-9]*"""r
-      
-      val identifier = """[a-zA-Z+*-]([a-zA-Z0-9+*-]|_[a-zA-Z0-9])*"""r
-
-      def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
-	case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
-      }
-
-      def statement = assignement | expression
-      
-      def assignement = identifier ~ ":=" ~ expression ^^ {
-	case (name ~ ":=" ~ expression) => Assignement(name, expression)
-      }
-      
-      lazy val reference: PackratParser[Reference] = expression ~ "." ~ identifier ^^ {
-	  case (expression ~ "." ~ name) => Reference(name, Some(expression))
-	} | identifier ^^ {
-	  case (name) => Reference(name)
-	}
-      
-      lazy val expression: PackratParser[Expression] = function_call | number | reference
-      
-      def number = (reel | integer) ^^ (n => ObjectExpression(Number_(n.toDouble)))
-      
-      lazy val function_call: PackratParser[Application] = reference ~ ("(" ~> repsep(expression, ",") <~ ")") ^^ {
-	case (reference ~ params) => Application(reference, params)
-      }
-      
-    }
-    
-    Expression.parseAll(Expression.statement, content) match {
-      case Expression.Success(s, in) => s
-      case Expression.Error(_, _) => throw new ParseException
-      case Expression.NoSuccess(_, _) => throw new ParseException
+    Expression.parseAll(Expression.statement, content)
+  }
+  
+  def parseSingleValidStatement(content: String) = {
+    parseSingleStatement(content) match {
+      case Expression.Success(stat, _) => stat
     }
   }
 }
 
-class ParseException extends Exception
+class UnexpectedEndOfLineError extends Exception
+import scala.util.parsing.combinator._
+
+object Expression extends RegexParsers with PackratParsers {
+
+  val integer = """[1-9][0-9]*"""r
+  
+  val identifier = """[a-zA-Z+*-]([a-zA-Z0-9+*-]|_[a-zA-Z0-9])*"""r
+
+  def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
+    case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
+  }
+
+  def statement = assignement | expression
+  
+  def assignement = identifier ~ ":=" ~ expression ^^ {
+    case (name ~ ":=" ~ expression) => Assignement(name, expression)
+  }
+  
+  lazy val reference: PackratParser[Reference] = expression ~ "." ~ identifier ^^ {
+    case (expression ~ "." ~ name) => Reference(name, Some(expression))
+  } | identifier ^^ {
+    case (name) => Reference(name)
+  }
+  
+  lazy val expression: PackratParser[Expression] = function_call | number | reference
+  
+  def number = (reel | integer) ^^ (n => ObjectExpression(Number_(n.toDouble)))
+  
+  lazy val function_call: PackratParser[Application] = reference ~ ("(" ~> repsep(expression, ",") <~ ")") ^^ {
+    case (reference ~ params) => Application(reference, params)
+  } | expression ~ " " ~ identifier ~ " " ~ expression ^^ {
+    case (expression ~ " " ~ identifier ~ " " ~ param) =>
+    Application(Reference(identifier, Some(expression)), List(param))
+  }
+}
 
 object WorkSheet {
   def computeResults(code: String): List[String] = {
@@ -129,14 +133,14 @@ object WorkSheet {
       if (line == "") ""
       else try {
 	Parser.parseSingleStatement(line) match {
-	  case x: Assignement => {
-	    assignements = assignements + (x.name -> x.value.evaluate(assignements))
-	    x.name + " = " + x.value.evaluate(assignements).toString
+	  case Expression.Success(ass: Assignement, _) => {
+	    assignements = assignements + (ass.name -> ass.value.evaluate(assignements))
+	    ass.name + " = " + ass.value.evaluate(assignements).toString
 	  }
-	  case x: Expression => x.evaluate(assignements).toString
+	  case Expression.Success(exp: Expression, _) => exp.evaluate(assignements).toString
+	  case _ => "invalid expression"
 	}
       } catch {
-	case e: ParseException => "invalid expression"
 	case InvalidReferenceException(name) => s"invalid reference: $name is not found"
       }
     }
