@@ -23,7 +23,7 @@ class WorkSheetSpec extends Specification {
     "handle an invalid reference" in {
       val code = "a"
       
-      WorkSheet.computeResults(code) must be equalTo List("invalid reference: a is not found")
+      WorkSheet.computeResults(code) must be equalTo List("invalid reference: a")
     }
   }
 }
