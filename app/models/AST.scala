@@ -91,9 +91,22 @@ case class Addition(this_ : Object_) extends Method(this_) {
   
   def members = Map()
 }
+
+case class Substraction(this_ : Object_) extends Method(this_) {
+  def applyMethod(arguments: List[Object_]) = {
+    val values = for( argument <- arguments) yield argument match {
+      case Number_(value) => value
+      case _ => throw new Exception()
+    }
+    Number_(values.head - values.tail.sum)
+  }
+  
+  def members = Map()
+}
+
 case class Number_(value: Double) extends Object_
 {
-  def members = Map("+" -> Addition(this))
+  def members = Map("+" -> Addition(this), "-" -> Substraction(this))
   override def toString = if (value.isValidInt) value.toInt.toString else value.toString
 }
 
