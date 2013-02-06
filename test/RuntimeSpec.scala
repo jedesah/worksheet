@@ -18,5 +18,12 @@ class RuntimeSpec extends Specification {
       val expression = Application(Reference("+", Some(ObjectExpression(Number_(23.0)))), arguments)
       expression.evaluate() must be equalTo Number_(28.0)
     }
+    
+    "evaluate a simple substraction expression" in {
+      val arguments = List(ObjectExpression(Number_(6.0)))
+      val expression = Application(Reference("-", Some(ObjectExpression(Number_(1.0)))), arguments)
+      expression.evaluate() must be equalTo Number_(-5.0)
+      println("Spec")
+    }
   }
 }
