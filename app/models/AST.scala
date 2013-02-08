@@ -40,7 +40,6 @@ object ExpressionImplicits {
     case expr: Expression => expr
   }
   implicit def ValueList2ExprList(value: List[Value]): List[Expression] = {
-    println(value)
     for (element <- value) yield Value2Expr(element)
   }
 }
@@ -55,7 +54,7 @@ case class Application(expr: Expression, arguments: List[Expression]) extends Ex
     else {
       val argumentsAsObject = resolvedArguments.map(_.asInstanceOf[Object_])
       onWhichToApply match {
-	case expr: Expression   => println("11");Application(expr, ExpressionImplicits.ValueList2ExprList(resolvedArguments))
+	case expr: Expression   => Application(expr, ExpressionImplicits.ValueList2ExprList(resolvedArguments))
 	case function: Function => function.apply_(argumentsAsObject)
 	case obj: Object_ => obj.members("()").asInstanceOf[Function].apply_(argumentsAsObject)
       }
