@@ -46,5 +46,24 @@ a"""
       val expected = List("a = b.+(c)", "b = 10", "c = 5", "15")
       WorkSheet.computeResults(example_resolve_unresolved) must be equalTo expected
     }
+    
+    val example_unresolved = """a := 10
+b := c.+(a)"""
+    s"handle partially unresolved expression such as $example_unresolved" in {
+      val expected = List("a = 10", "b = c.+(10)")
+      WorkSheet.computeResults(example_unresolved) must be equalTo expected
+    }
+    
+    val boolean_comparison = "true = false"
+    s"handle boolean comparison of the form $boolean_comparison" in {
+      val expected = List("false")
+      WorkSheet.computeResults(boolean_comparison) must be equalTo expected
+    }
+    
+    val equal_simple_assignation = "a = 10"
+    s"handle simple expression assignation with equal resolver of the form $equal_simple_assignation" in {
+      val expected = List("a = 10")
+      WorkSheet.computeResults(equal_simple_assignation) must be equalTo expected
+    }
   }
 }
