@@ -4,11 +4,11 @@ trait Statement
 
 case class Assignement(name: String, value: Expression) extends Statement
 
-trait Value
-
-trait Expression extends Statement with Value {
+trait Value {
   def evaluate(assignements: Map[String, Value] = Map()): Value
 }
+
+trait Expression extends Statement with Value
 
 case class UncompiledExpression(content: String) extends Expression {
   def evaluate(assignements: Map[String, Value]) =
@@ -21,15 +21,16 @@ case class ObjectExpression(object_ : Object_) extends Expression {
 
 case class Reference(name: String, parent: Option[Expression] = None) extends Expression {
   def evaluate(assignements: Map[String, Value]) = {
-    println("Reference")
     parent match {
       case Some(parent) => parent.evaluate(assignements) match {
-	case obj: Object_     => println("1");obj.members.getOrElse(name, this)
-	case expr: Expression => println("2");this
+	case obj: Object_     => obj.members.getOrElse(name, this)
+	case expr: Expression => this
       }
-      case None => println("3");assignements.applyOrElse(name, (key: String) => this)
+      case None => assignements.get(name).map(_.evaluate(assignements)).getOrElse(this)
     }
   }
+  
+  override def toString = parent.map(_.toString + ".").getOrElse("") + name
 }
 
 object ExpressionImplicits {
@@ -46,29 +47,28 @@ object ExpressionImplicits {
 
 case class Application(expr: Expression, arguments: List[Expression]) extends Expression {
   def evaluate(assignements: Map[String, Value]) = {
-    println("Application")
-    println(expr)
     val onWhichToApply = expr.evaluate(assignements)
-    println("Application1")
     val resolvedArguments = arguments.map(_.evaluate(assignements))
     val hasUnresolvedArguments = resolvedArguments.exists(_.isInstanceOf[Expression])
     if (hasUnresolvedArguments)
       Application(ExpressionImplicits.Value2Expr(onWhichToApply), ExpressionImplicits.ValueList2ExprList(resolvedArguments))
     else {
-      println("Application2")
       val argumentsAsObject = resolvedArguments.map(_.asInstanceOf[Object_])
       onWhichToApply match {
-	case expr: Expression   => println(resolvedArguments.length);Application(expr, ExpressionImplicits.ValueList2ExprList(resolvedArguments))
-	case function: Function => println("Application4");function.apply_(argumentsAsObject)
-	case obj: Object_ => println("Application5");obj.members("()").asInstanceOf[Function].apply_(argumentsAsObject)
+	case expr: Expression   => println("11");Application(expr, ExpressionImplicits.ValueList2ExprList(resolvedArguments))
+	case function: Function => function.apply_(argumentsAsObject)
+	case obj: Object_ => obj.members("()").asInstanceOf[Function].apply_(argumentsAsObject)
       }
     }
   }
+  
+  override def toString = expr.toString + "(" + arguments.mkString(",") + ")"
 }
     
 
 trait Object_ extends Value {
   def members: Map[String, Object_]
+  override def evaluate(assignements: Map[String, Value]) = this
 }
 
 trait Function extends Object_ {
@@ -176,14 +176,19 @@ object WorkSheet {
       if (line == "") ""
       else Parser.parseSingleStatement(line) match {
 	case StatementParser.Success(ass: Assignement, _) => {
-	  assignements = assignements + (ass.name -> ass.value.evaluate(assignements))
-	  ass.name + " = " + ass.value.evaluate(assignements).toString
+	  val evaluatedExpr = ass.value.evaluate(assignements)
+	  assignements = assignements + (ass.name -> evaluatedExpr)
+	  ass.name + " = " + evaluatedExpr.toString
+	}
+	case StatementParser.Success(ref: Reference, _) => ref.evaluate(assignements) match {
+	  case resultRef: Reference if (resultRef == ref) => s"invalid reference: ${ref.name}"
+	  case value => value.toString
 	}
 	case StatementParser.Success(exp: Expression, _) => exp.evaluate(assignements) match {
-	  case ref: Reference => s"invalid reference: ${ref.name}"
 	  case obj: Object_ => obj.toString
+	  case _ => "invalid expression"
 	}
-	case _ => "invalid expression"
+	case _ => "invalid statement"
       }
     }
   }
