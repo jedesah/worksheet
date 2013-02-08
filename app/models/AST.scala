@@ -17,6 +17,7 @@ case class UncompiledExpression(content: String) extends Expression {
 
 case class ObjectExpression(object_ : Object_) extends Expression {
   def evaluate(assignements: Map[String, Value]): Object_ = object_
+  override def toString = object_.toString
 }
 
 case class Reference(name: String, parent: Option[Expression] = None) extends Expression {
