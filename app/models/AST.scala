@@ -15,6 +15,23 @@ case class UncompiledExpression(content: String) extends Expression {
     Parser.parseSingleValidStatement(content).asInstanceOf[Expression].evaluate(assignements)
 }
 
+case class AmbigiousExpression(possiblesExprs: List[Expression]) extends Expression {
+  def evaluate(assignements: Map[String, Value]): Value = {
+    for (expr <- possiblesExprs) {
+      expr.evaluate(assignements) match {
+	case obj: Object_ => return obj
+	case _ => ;
+      }
+    }
+    return this
+  }
+}
+
+case class ParenthesisedExpression(innerExpr: Expression) extends Expression {
+  def evaluate(assignements: Map[String, Value]) = innerExpr.evaluate(assignements)
+  override def toString = "(" + innerExpr.toString + ")"
+}
+
 case class ObjectExpression(object_ : Object_) extends Expression {
   def evaluate(assignements: Map[String, Value]): Object_ = object_
   override def toString = object_.toString
@@ -78,6 +95,7 @@ trait Function extends Object_ {
 abstract class Method(this_ : Object_) extends Function {
   def apply_(arguments: List[Object_]) = applyMethod(this_ :: arguments)
   def applyMethod(arguments: List[Object_]): Object_
+  def members = Map()
 }
 
 case class Addition(this_ : Object_) extends Method(this_) {
@@ -88,8 +106,6 @@ case class Addition(this_ : Object_) extends Method(this_) {
     }
     Number_(values.sum)
   }
-  
-  def members = Map()
 }
 
 case class Substraction(this_ : Object_) extends Method(this_) {
@@ -100,14 +116,23 @@ case class Substraction(this_ : Object_) extends Method(this_) {
     }
     Number_(values.head - values.tail.sum)
   }
-  
-  def members = Map()
+}
+
+case class Equal(this_ : Object_) extends Method(this_) {
+  def applyMethod(arguments: List[Object_]) =
+    Boolean_(arguments.forall(_ == this_))
 }
 
 case class Number_(value: Double) extends Object_
 {
-  def members = Map("+" -> Addition(this), "-" -> Substraction(this))
+  def members = Map("+" -> Addition(this), "-" -> Substraction(this), "==" -> Equal(this))
   override def toString = if (value.isValidInt) value.toInt.toString else value.toString
+}
+
+case class Boolean_(value: Boolean) extends Object_
+{
+  def members = Map("==" -> Equal(this))
+  override def toString = value.toString
 }
 
 class UnexpectedEndOfLineError extends Exception
@@ -117,7 +142,7 @@ object StatementParser extends RegexParsers with PackratParsers {
 
   val integer = """[1-9][0-9]*"""r
   
-  val identifier = """[a-zA-Z+*-]([a-zA-Z0-9+*-]|_[a-zA-Z0-9])*"""r
+  val identifier = """[a-zA-Z+*=\-]([a-zA-Z0-9+*=\-]|_[a-zA-Z0-9])*"""r
 
   def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
     case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
@@ -135,7 +160,13 @@ object StatementParser extends RegexParsers with PackratParsers {
     case (name) => Reference(name)
   }
   
-  lazy val expression: PackratParser[Expression] = function_call | number | reference
+  lazy val expression: PackratParser[Expression] = function_call |
+						   number |
+						   boolean_ |
+						   reference
+
+  def boolean_ = "true" ^^ { case _ => ObjectExpression(Boolean_(true)) } |
+		"false" ^^ { case _ => ObjectExpression(Boolean_(false)) }
   
   def number = (reel | integer) ^^ (n => ObjectExpression(Number_(n.toDouble)))
   

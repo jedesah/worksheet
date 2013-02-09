@@ -54,7 +54,7 @@ b := c.+(a)"""
       WorkSheet.computeResults(example_unresolved) must be equalTo expected
     }
     
-    val boolean_comparison = "true = false"
+    val boolean_comparison = "true.==(false)"
     s"handle boolean comparison of the form $boolean_comparison" in {
       val expected = List("false")
       WorkSheet.computeResults(boolean_comparison) must be equalTo expected

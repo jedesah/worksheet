@@ -17,9 +17,12 @@ class ParserSpec extends Specification {
       Application(Reference("+", Some(ObjectExpression(Number_(first)))), params)
     }
     
-    def refAdditionExpr(first: String, second: String): Application = {
+    def refAdditionExpr(first: String, second: String): Application =
+      refMethodCall(first, second, "+")
+    
+    def refMethodCall(first: String, second: String, operationName: String) = {
       val params = List(Reference(second, None))
-      Application(Reference("+", Some(Reference(first, None))), params)
+      Application(Reference(operationName, Some(Reference(first, None))), params)
     }
     
     "parse a simple addition expression such as \"7.+(4)\"" in {
@@ -32,6 +35,12 @@ class ParserSpec extends Specification {
       val expression = "b.+(c)"
       val actual = Parser.parseSingleValidStatement(expression)
       actual must be equalTo refAdditionExpr("b", "c")
+    }
+    
+    "parse a simple substraction expression with references such as \"b.-(c)\"" in {
+      val expression = "b.-(c)"
+      val actual = Parser.parseSingleValidStatement(expression)
+      actual must be equalTo refMethodCall("b", "c", "-")
     }
     
     "parse an infix operator notation addition expression such as \"7 + 4\"" in {
@@ -51,6 +60,31 @@ a"""
       val statement3 = Assignement("c", ObjectExpression(Number_(5)))
       val statement4 = Reference("a", None)
       val expected = List(statement1, statement2, statement3, statement4)
+      actual must be equalTo expected
+    }
+    
+    "parse the simple \"true\" expression" in {
+      val code = "true"
+      
+      val actual = Parser.parseSingleValidStatement(code)
+      val expected = ObjectExpression(Boolean_(true))
+      actual must be equalTo expected
+    }
+    
+    "parse the simple \"false\" expression" in {
+      val code = "false"
+      
+      val actual = Parser.parseSingleValidStatement(code)
+      val expected = ObjectExpression(Boolean_(false))
+      actual must be equalTo expected
+    }
+    
+    "parse a comparison between true and false" in {
+      val code = "true.==(false)"
+      
+      val actual = Parser.parseSingleValidStatement(code)
+      val params = List(ObjectExpression(Boolean_(false)))
+      val expected = Application(Reference("==", Some(ObjectExpression(Boolean_(true)))), params)
       actual must be equalTo expected
     }
   }
