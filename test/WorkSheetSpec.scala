@@ -60,6 +60,20 @@ b := c.+(a)"""
       WorkSheet.computeResults(boolean_comparison) must be equalTo expected
     }
     
+    val number_comparison = "1.==(1)"
+    s"handle number comparison of the form $number_comparison" in {
+      val expected = List("true")
+      WorkSheet.computeResults(number_comparison) must be equalTo expected
+    }
+    
+    val mixed_comparison = """a := 10
+a.==(10)
+10.==(a)"""
+    s"handle a mixed comparison of the form $mixed_comparison" in {
+      val expected = List("a = 10", "true", "true")
+      WorkSheet.computeResults(mixed_comparison) must be equalTo expected
+    }
+    
     val equal_simple_assignation = "a = 10"
     s"handle simple expression assignation with equal resolver of the form $equal_simple_assignation" in {
       val expected = List("a = 10")
