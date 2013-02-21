@@ -1,17 +1,12 @@
 @(code: String = "", results: List[String] = Nil)(implicit request: RequestHeader)
 
 @main("REPL") {
-  @helper.form(routes.Application.eval) {
-    
-    <textarea id="worksheet" cols="100" rows="50" name="code">@code</textarea>
-    <div style="position: absolute; top: 10px; left: 10px; height: 200px; width: 820px; pointer-events: none" id="result">
-      @results.map { result =>
-	<span style="float: right">@result</span>
-      }
-    </div>
-    
-    <input id="eval" type="submit" value="Eval">
-  }
+  <textarea id="worksheet" cols="100" rows="50" name="code">@code</textarea>
+  <div style="position: absolute; top: 10px; left: 10px; height: 200px; width: 820px; pointer-events: none" id="result">
+    @results.map { result =>
+      <span style="float: right">@result</span>
+    }
+  </div>
   
   <script type="text/javascript" charset="utf-8">
     $(function() {

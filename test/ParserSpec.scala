@@ -2,7 +2,8 @@ package test
 
 import org.specs2.mutable._
 
-import models.AST._
+import models.LanguageAST._
+import models.Parser
 
 class ParserSpec extends Specification {
   "Parser" should {
@@ -14,7 +15,7 @@ class ParserSpec extends Specification {
     
     def doubleAdditionExpr(first: Double, second: Double): Application = {
       val params = List(ObjectExpression(Number_(second)))
-      Application(Reference("+", Some(ObjectExpression(Number_(first)))), params)
+      Application(Reference("+", None, Some(ObjectExpression(Number_(first)))), params)
     }
     
     def refAdditionExpr(first: String, second: String): Application =
@@ -22,7 +23,7 @@ class ParserSpec extends Specification {
     
     def refMethodCall(first: String, second: String, operationName: String) = {
       val params = List(Reference(second, None))
-      Application(Reference(operationName, Some(Reference(first, None))), params)
+      Application(Reference(operationName, None, Some(Reference(first, None))), params)
     }
     
     "parse a simple addition expression such as \"7.+(4)\"" in {
@@ -55,9 +56,9 @@ b := 10
 c := 5
 a"""
       val actual = Parser.parse(code)
-      val statement1 = Assignement("a", refAdditionExpr("b", "c"))
-      val statement2 = Assignement("b", ObjectExpression(Number_(10)))
-      val statement3 = Assignement("c", ObjectExpression(Number_(5)))
+      val statement1 = Assignement(Reference("a"), refAdditionExpr("b", "c"))
+      val statement2 = Assignement(Reference("b"), ObjectExpression(Number_(10)))
+      val statement3 = Assignement(Reference("c"), ObjectExpression(Number_(5)))
       val statement4 = Reference("a", None)
       val expected = List(statement1, statement2, statement3, statement4)
       actual must be equalTo expected
@@ -84,7 +85,7 @@ a"""
       
       val actual = Parser.parseSingleValidStatement(code)
       val params = List(ObjectExpression(Boolean_(false)))
-      val expected = Application(Reference("==", Some(ObjectExpression(Boolean_(true)))), params)
+      val expected = Application(Reference("==", None, Some(ObjectExpression(Boolean_(true)))), params)
       actual must be equalTo expected
     }
   }

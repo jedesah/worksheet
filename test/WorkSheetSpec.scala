@@ -2,7 +2,7 @@ package test
 
 import org.specs2.mutable._
 
-import models.AST._
+import models.WorkSheet
 
 class WorkSheetSpec extends Specification {
 
@@ -79,5 +79,9 @@ a.==(10)
       val expected = List("a = 10")
       WorkSheet.computeResults(equal_simple_assignation) must be equalTo expected
     }
+    
+    val optinal_typing = """cars := getXMLOfCar()
+car := Car.fromXML(car)
+verifyXml(car)"""
   }
 }
