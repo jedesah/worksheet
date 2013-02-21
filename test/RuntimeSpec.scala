@@ -30,28 +30,49 @@ class InterpreterSpec extends Specification {
       expression.evaluate() must be equalTo Boolean_(true)
     }
     
-    "evalate a simple boolean comparison expression" in {
+    "evaluate a simple boolean comparison expression" in {
       val arguments = List(ObjectExpression(Boolean_(false)))
       val expression = Application(Reference("==", None, Some(ObjectExpression(Boolean_(true)))), arguments)
       expression.evaluate() must be equalTo Boolean_(false)
     }
     
     "evaluate a simple function" in {
-      val expression = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(3)))))
-      expression.evaluate() must be equalTo new Function(Nil, Body(Nil, ObjectExpression(Number_(3))))
+      val expression = ObjectExpression(new Function(Body(ObjectExpression(Number_(3)))))
+      expression.evaluate() must be equalTo new Function(Body(ObjectExpression(Number_(3))))
     }
     
     "evaluate a simple function application" in {
-      val function = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(7)))))
+      val function = ObjectExpression(new Function(Body(ObjectExpression(Number_(7)))))
       val application = Application(function)
       application.evaluate() must be equalTo Number_(7)
     }
     
-    "evaluate a simple referenced application" in {
-      val function = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(90)))))
+    "evaluate a simple referenced functon application" in {
+      val function = ObjectExpression(new Function(Body(ObjectExpression(Number_(90)))))
       val assignements = Map("gg" -> TypeMap(Map(None -> function)))
       val application = Application(Reference("gg"))
       application.evaluate(assignements) must be equalTo Number_(90)
+    }
+    
+    "evaluate a simple parameterized function" in {
+      val function = new Function(Body(Reference("toEcho")), List(Param("toEcho")))
+      val expression = ObjectExpression(function)
+      expression.evaluate() must be equalTo function
+    }
+    
+    "evaluate a simple parameterized function application" in {
+      val function = ObjectExpression(new Function(Body(Reference("toEcho")), List(Param("toEcho"))))
+      val echo = Number_(9)
+      val application = Application(function, List(ObjectExpression(echo)))
+      application.evaluate() must be equalTo echo
+    }
+    
+    "evaluate a simple referenced parameterized function application" in {
+      val function = ObjectExpression(new Function(Body(Reference("toEcho")), List(Param("toEcho"))))
+      val assignements = Map("bb" -> TypeMap(Map(None -> function)))
+      val echo = Boolean_(true)
+      val application = Application(function, List(ObjectExpression(echo)))
+      application.evaluate(assignements) must be equalTo echo
     }
   }
 }

@@ -113,7 +113,7 @@ object LanguageAST {
     override def evaluate(assignements: Map[String, TypeMap], expected:Type) = this
   }
 
-  class Function(val params: List[Param], val body: Body) extends Object_(functionClass) {
+  class Function(val body: Body, val params: List[Param] = Nil) extends Object_(functionClass) {
     def apply_(arguments: List[Object_]): Object_ =
       if (params.length != arguments.length) this // TODO: Produce a partially applied function
       else {
@@ -146,7 +146,7 @@ object LanguageAST {
 
   case class Param(name: String, type_ : Option[String] = None)
 
-  case class Body(content: List[Statement], expr: Expression) {
+  case class Body(expr: Expression, content: List[Statement] = Nil) {
     def evaluate(assignements: Map[String, TypeMap]) = {
       var bodyAssignements = assignements
     
@@ -194,7 +194,7 @@ object LanguageAST {
   val booleanClass = new SubClass("Boolean", Struct(Map("==" -> Some(functionClass))))
   val functionClass = new SubClass("Function")
 
-  class Method(val this_ : Object_, params: List[Param], body: Body) extends Function(Param("this") :: params, body) {
+  class Method(val this_ : Object_, params: List[Param], body: Body) extends Function(body, Param("this") :: params) {
     override def apply_(arguments: List[Object_]) = super.apply_(this_ :: arguments)
   }
 
@@ -223,13 +223,13 @@ object LanguageAST {
   {
     override def members = Map("+" ->  new Method(this,
 			      List(Param("other", Some(numberClass.name))),
-			      Body(Nil, AdditionExpression(Reference("this"), Reference("other")))),
+			      Body(AdditionExpression(Reference("this"), Reference("other")))),
 		      "-" ->  new Method(this,
 			      List(Param("other", Some(numberClass.name))),
-			      Body(Nil, SubstractionExpression(Reference("this"), Reference("other")))),
+			      Body(SubstractionExpression(Reference("this"), Reference("other")))),
 		      "==" -> new Method(this,
 			      List(Param("other", Some(Any.name))),
-			      Body(Nil, EqualityExpression(Reference("this"), Reference("other")))))
+			      Body(EqualityExpression(Reference("this"), Reference("other")))))
 		      
     override def toString = if (value.isValidInt) value.toInt.toString else value.toString
   }
@@ -238,7 +238,7 @@ object LanguageAST {
   {
     override def members = Map("==" -> new Method(this,
 			      List(Param("other", Some(Any.name))),
-			      Body(Nil, EqualityExpression(Reference("this"), Reference("other")))))
+			      Body(EqualityExpression(Reference("this"), Reference("other")))))
     override def toString = value.toString
   }
 }
