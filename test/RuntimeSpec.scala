@@ -23,12 +23,35 @@ class InterpreterSpec extends Specification {
       val arguments = List(ObjectExpression(Number_(6.0)))
       val expression = Application(Reference("-", None, Some(ObjectExpression(Number_(1.0)))), arguments)
       expression.evaluate() must be equalTo Number_(-5.0)
-      println("Spec")
     }
     
     "evaluate a simple boolean expression" in {
       val expression = ObjectExpression(Boolean_(true))
       expression.evaluate() must be equalTo Boolean_(true)
+    }
+    
+    "evalate a simple boolean comparison expression" in {
+      val arguments = List(ObjectExpression(Boolean_(false)))
+      val expression = Application(Reference("==", None, Some(ObjectExpression(Boolean_(true)))), arguments)
+      expression.evaluate() must be equalTo Boolean_(false)
+    }
+    
+    "evaluate a simple function" in {
+      val expression = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(3)))))
+      expression.evaluate() must be equalTo new Function(Nil, Body(Nil, ObjectExpression(Number_(3))))
+    }
+    
+    "evaluate a simple function application" in {
+      val function = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(7)))))
+      val application = Application(function)
+      application.evaluate() must be equalTo Number_(7)
+    }
+    
+    "evaluate a simple referenced application" in {
+      val function = ObjectExpression(new Function(Nil, Body(Nil, ObjectExpression(Number_(90)))))
+      val assignements = Map("gg" -> TypeMap(Map(None -> function)))
+      val application = Application(Reference("gg"))
+      application.evaluate(assignements) must be equalTo Number_(90)
     }
   }
 }

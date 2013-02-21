@@ -95,7 +95,7 @@ object LanguageAST {
   
   import ExpressionImplicits._
 
-  case class Application(expr: Expression, arguments: List[Expression]) extends Expression {
+  case class Application(expr: Expression, arguments: List[Expression] = Nil) extends Expression {
     def evaluate(assignements: Map[String, TypeMap], expected:Type) = {
       expr.evaluate(assignements, Any) match {
 	case expr: Expression   => Application(expr, arguments.map(_.evaluate(assignements, Any)))
@@ -136,6 +136,12 @@ object LanguageAST {
       else
 	throw new Error
     }
+    override def equals(other: Any) =
+      if (other == null) false
+      else other match {
+	case other: Function => params == other.params && body == other.body
+	case _ => false
+      }
   }
 
   case class Param(name: String, type_ : Option[String] = None)

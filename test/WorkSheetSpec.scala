@@ -79,8 +79,13 @@ a.==(10)
       val expected = List("a = 10")
       WorkSheet.computeResults(equal_simple_assignation) must be equalTo expected
     }
+    val simple_function_declaration = "bbe := () => 7"
+    s"a simple function can be declared as per the following example: $simple_function_declaration" in {
+      val expected = List("bbe = () =>")
+      WorkSheet.computeResults(equal_simple_assignation) must be equalTo expected
+    }
     
-    val optinal_typing = """cars := getXMLOfCar()
+    val optional_typing = """cars := getXMLOfCar()
 car := Car.fromXML(car)
 verifyXml(car)"""
   }
