@@ -5,6 +5,8 @@ import org.specs2.mutable._
 import models.LanguageAST._
 import models.Parser
 
+import Utils._
+
 class ParserSpec extends Specification {
   "Parser" should {
 
@@ -13,41 +15,28 @@ class ParserSpec extends Specification {
       Parser.parseSingleValidStatement(expression) must be equalTo ObjectExpression(Number_(32))
     }
     
-    def doubleAdditionExpr(first: Double, second: Double): Application = {
-      val params = List(ObjectExpression(Number_(second)))
-      Application(Reference("+", None, Some(ObjectExpression(Number_(first)))), params)
-    }
-    
-    def refAdditionExpr(first: String, second: String): Application =
-      refMethodCall(first, second, "+")
-    
-    def refMethodCall(first: String, second: String, operationName: String) = {
-      val params = List(Reference(second, None))
-      Application(Reference(operationName, None, Some(Reference(first, None))), params)
-    }
-    
     "parse a simple addition expression such as \"7.+(4)\"" in {
       val expression = "7.+(4)"
       val actual = Parser.parseSingleValidStatement(expression)
-      actual must be equalTo doubleAdditionExpr(7.0, 4.0)
+      actual must be equalTo simpleMethodCall(7.0, 4.0, "+")
     }
     
     "parse a simple addition expression with references such as \"b.+(c)\"" in {
       val expression = "b.+(c)"
       val actual = Parser.parseSingleValidStatement(expression)
-      actual must be equalTo refAdditionExpr("b", "c")
+      actual must be equalTo simpleMethodCall("b", "c", "+")
     }
     
     "parse a simple substraction expression with references such as \"b.-(c)\"" in {
       val expression = "b.-(c)"
       val actual = Parser.parseSingleValidStatement(expression)
-      actual must be equalTo refMethodCall("b", "c", "-")
+      actual must be equalTo simpleMethodCall("b", "c", "-")
     }
     
     "parse an infix operator notation addition expression such as \"7 + 4\"" in {
       val expression = "7 + 4"
       val actual = Parser.parseSingleValidStatement(expression)
-      actual must be equalTo doubleAdditionExpr(7, 4)
+      actual must be equalTo simpleMethodCall(7, 4, "+")
     }
      
     "parse multiple statements" in {
@@ -56,7 +45,7 @@ b := 10
 c := 5
 a"""
       val actual = Parser.parse(code)
-      val statement1 = Assignement(Reference("a"), refAdditionExpr("b", "c"))
+      val statement1 = Assignement(Reference("a"), simpleMethodCall("b", "c", "+"))
       val statement2 = Assignement(Reference("b"), ObjectExpression(Number_(10)))
       val statement3 = Assignement(Reference("c"), ObjectExpression(Number_(5)))
       val statement4 = Reference("a", None)
@@ -84,9 +73,7 @@ a"""
       val code = "true.==(false)"
       
       val actual = Parser.parseSingleValidStatement(code)
-      val params = List(ObjectExpression(Boolean_(false)))
-      val expected = Application(Reference("==", None, Some(ObjectExpression(Boolean_(true)))), params)
-      actual must be equalTo expected
+      actual must be equalTo simpleMethodCall(true, false, "==")
     }
   }
 }

@@ -35,11 +35,10 @@ object LanguageAST {
 
   trait Expression extends Statement with Value
 
-  // TODO : implement this
-  /*case class UncompiledExpression(content: String) extends Expression {
+  case class UncompiledExpression(content: String) extends Expression {
     def evaluate(assignements: Map[String, TypeMap], expected:Type) =
       Parser.parseSingleValidStatement(content).asInstanceOf[Expression].evaluate(assignements)
-  }*/
+  }
 
   case class AmbigiousExpression(possiblesExprs: List[Expression]) extends Expression {
     def evaluate(assignements: Map[String, TypeMap], expected:Type): Value = {
@@ -113,7 +112,7 @@ object LanguageAST {
     override def evaluate(assignements: Map[String, TypeMap], expected:Type) = this
   }
 
-  class Function(val body: Body, val params: List[Param] = Nil) extends Object_(functionClass) {
+  class Function(val body: Block, val params: List[Param] = Nil) extends Object_(functionClass) {
     def apply_(arguments: List[Object_]): Object_ =
       if (params.length != arguments.length) this // TODO: Produce a partially applied function
       else {
@@ -146,8 +145,8 @@ object LanguageAST {
 
   case class Param(name: String, type_ : Option[String] = None)
 
-  case class Body(expr: Expression, content: List[Statement] = Nil) {
-    def evaluate(assignements: Map[String, TypeMap]) = {
+  case class Block(expr: Expression, content: List[Statement] = Nil) extends Expression {
+    def evaluate(assignements: Map[String, TypeMap], expected:Type) = {
       var bodyAssignements = assignements
     
       for (statement <- content) {
@@ -181,6 +180,7 @@ object LanguageAST {
   }
 
   object Any extends Class("Any", Struct())
+  object Nothing extends Class("Nothing", Struct())
 
   class SubClass(name: String, struct : Struct = Struct(), val parent: Class = Any) extends Class(name, struct)
 
@@ -194,7 +194,7 @@ object LanguageAST {
   val booleanClass = new SubClass("Boolean", Struct(Map("==" -> Some(functionClass))))
   val functionClass = new SubClass("Function")
 
-  class Method(val this_ : Object_, params: List[Param], body: Body) extends Function(body, Param("this") :: params) {
+  class Method(val this_ : Object_, params: List[Param], body: Block) extends Function(body, Param("this") :: params) {
     override def apply_(arguments: List[Object_]) = super.apply_(this_ :: arguments)
   }
 
@@ -218,18 +218,29 @@ object LanguageAST {
     def evaluate(assignements: Map[String, TypeMap], expected:Type) =
       Boolean_(ref1.evaluate(assignements, expected) == ref2.evaluate(assignements, expected))
   }
+  
+  case class IfExpression(condition: Expression, body: Block, else_ : Option[Block] = None) extends Expression {
+    def evaluate(assignements: Map[String, TypeMap], expected:Type) =
+      condition.evaluate(assignements, expected) match {
+	case Boolean_(true) => body.evaluate(assignements, expected)
+	case _ => else_ match {
+	  case Some(elseExpr) => elseExpr.evaluate(assignements, expected)
+	  case None => nothing
+	}
+      }
+  }
 
   case class Number_(value: Double) extends Object_(numberClass)
   {
     override def members = Map("+" ->  new Method(this,
 			      List(Param("other", Some(numberClass.name))),
-			      Body(AdditionExpression(Reference("this"), Reference("other")))),
+			      Block(AdditionExpression(Reference("this"), Reference("other")))),
 		      "-" ->  new Method(this,
 			      List(Param("other", Some(numberClass.name))),
-			      Body(SubstractionExpression(Reference("this"), Reference("other")))),
+			      Block(SubstractionExpression(Reference("this"), Reference("other")))),
 		      "==" -> new Method(this,
 			      List(Param("other", Some(Any.name))),
-			      Body(EqualityExpression(Reference("this"), Reference("other")))))
+			      Block(EqualityExpression(Reference("this"), Reference("other")))))
 		      
     override def toString = if (value.isValidInt) value.toInt.toString else value.toString
   }
@@ -238,9 +249,11 @@ object LanguageAST {
   {
     override def members = Map("==" -> new Method(this,
 			      List(Param("other", Some(Any.name))),
-			      Body(EqualityExpression(Reference("this"), Reference("other")))))
+			      Block(EqualityExpression(Reference("this"), Reference("other")))))
     override def toString = value.toString
   }
+  
+  object nothing extends Object_(Nothing)
 }
 
 class UnexpectedEndOfLineError extends Exception
