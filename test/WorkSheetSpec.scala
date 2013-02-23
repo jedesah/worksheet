@@ -74,6 +74,84 @@ a.==(10)
       WorkSheet.computeResults(mixed_comparison) must be equalTo expected
     }
     
+    val simple_pass_if_expression = "if (true) 7"
+    s"compute the result of a simple if expression of the form $simple_pass_if_expression" in {
+      val expected = List("7")
+      WorkSheet.computeResults(simple_pass_if_expression) must be equalTo expected
+    }
+    
+    val simple_fail_if_expression = "if (false) 7"
+    s"compute the result of a simple if expression of the form $simple_fail_if_expression" in {
+      val expected = List("nothing")
+      WorkSheet.computeResults(simple_fail_if_expression) must be equalTo expected
+    }
+    
+    val simple_pass_if_else_expression = """a := 10
+b := 10
+if (a.==(b)) 5 else 10"""
+    s"compute the result of a passing if/else expression of the form $simple_pass_if_else_expression" in {
+      val expected = List("a = 10", "b = 10", "5")
+      WorkSheet.computeResults(simple_pass_if_else_expression) must be equalTo expected
+    }
+    
+    val simple_fail_if_else_expression = """a := 6
+b := 5
+if (a.==(b)) 5 else 10"""
+    s"compute the resul of a failing if/else expression of the form $simple_fail_if_else_expression" in {
+      val expected = List("a = 6", "b = 5", "10")
+      WorkSheet.computeResults(simple_fail_if_else_expression) must be equalTo expected
+    }
+    
+    val multiline_passing_if_expression = """if (true):
+	7"""
+    s"compute the result of a passing multiline if expression of the form $multiline_passing_if_expression" in {
+      val expected = List("7")
+      WorkSheet.computeResults(multiline_passing_if_expression) must be equalTo expected
+    }
+    
+    val multiline_failing_if_expression = """if (false):
+	7"""
+    s"compute the result of a failing multiline if expression of the form $multiline_failing_if_expression" in {
+      val expected = List("nothing")
+      WorkSheet.computeResults(multiline_failing_if_expression) must be equalTo expected
+    }
+    
+    val multiline_passing_if_else_expression = """if (true):
+	7
+else:
+	3"""
+    s"compute the result of a passing multiline if/else expression of the form $multiline_passing_if_else_expression" in {
+      val expected = List("7")
+      WorkSheet.computeResults(multiline_passing_if_else_expression) must be equalTo expected
+    }
+    
+    val multiline_failing_if_else_expression = """if (false):
+	7
+else:
+	3"""
+    s"compute the result of a failing multiline if/else expression of the form $multiline_failing_if_else_expression" in {
+      val expected = List("3")
+      WorkSheet.computeResults(multiline_failing_if_else_expression) must be equalTo expected
+    }
+    
+    val multiline_failing_if_else_expression_with_syntax_errors = """if (false):
+	car.
+else:
+	3"""
+    s"compute the result of a failing multiline if/else expression with syntax errors of the form $multiline_failing_if_else_expression_with_syntax_errors" in {
+      val expected = List("3")
+      WorkSheet.computeResults(multiline_failing_if_else_expression_with_syntax_errors) must be equalTo expected
+    }
+    
+    val multiline_passing_if_else_expression_with_syntax_errors = """if (true):
+	7
+else:
+	car."""
+    s"compute the result of a passing multiline if/else expression with syntax errors of the form $multiline_passing_if_else_expression_with_syntax_errors" in {
+      val expected = List("7")
+      WorkSheet.computeResults(multiline_passing_if_else_expression_with_syntax_errors) must be equalTo expected
+    }
+    
     val equal_simple_assignation = "a = 10"
     s"handle simple expression assignation with equal resolver of the form $equal_simple_assignation" in {
       val expected = List("a = 10")
