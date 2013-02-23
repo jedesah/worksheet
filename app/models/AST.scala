@@ -286,7 +286,9 @@ object LanguageAST {
     override def toString = value.toString
   }
   
-  object nothing extends Object_(Nothing)
+  object nothing extends Object_(Nothing) {
+    override def toString = "nothing"
+  }
 }
 
 class UnexpectedEndOfLineError extends Exception
