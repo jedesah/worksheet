@@ -170,7 +170,14 @@ test(false)"""
 	s"compute a function assignement followed by applications of that function" in {
 		val expected = List("test = (a) =>", "7", "10")
 		WorkSheet.computeResults(declaring_and_using_a_function) must be equalTo expected
-	}	
+	}
+	
+	val bug_1 = """michel_function := (a) => if (a.==(10)) 9 else 8
+michel_function(0)"""
+	"bug1" in {
+		val expected = List("michel_function = (a) =>", "8")
+		WorkSheet.computeResults(bug_1) must be equalTo expected
+	}
     
     val optional_typing = """cars := getXMLOfCar()
 car := Car.fromXML(car)
