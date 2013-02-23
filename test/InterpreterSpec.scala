@@ -3,6 +3,7 @@ package test
 import org.specs2.mutable._
 
 import models.LanguageAST._
+import models.LanguageAST.ExpressionImplicits._
 
 import Utils._
 

@@ -3,6 +3,8 @@ package models
 object LanguageAST {
 
   trait Statement
+  
+  case class UncompiledStatement(content: String) extends Statement
 
   case class Assignement(ref: Reference, value: Expression) extends Statement
 
@@ -90,6 +92,7 @@ object LanguageAST {
     implicit def ValueList2ExprList(value: List[Value]): List[Expression] = {
       for (element <- value) yield Value2Expr(element)
     }
+    implicit def ExpressionToStatementList(value: Expression): List[Statement] = List(value)
   }
   
   import ExpressionImplicits._
@@ -145,25 +148,55 @@ object LanguageAST {
 
   case class Param(name: String, type_ : Option[String] = None)
 
-  case class Block(expr: Expression, content: List[Statement] = Nil) extends Expression {
-    def evaluate(assignements: Map[String, TypeMap], expected:Type) = {
-      var bodyAssignements = assignements
+  case class Block(content: List[Statement]) extends Expression {
+    def evaluate(assignements: Map[String, TypeMap], expected:Type) =
+      content.last match {
+	case expr: Expression => {
+	  var bodyAssignements = assignements
     
-      for (statement <- content) {
+	  for (statement <- content.init) {
+	    statement match {
+	      case Assignement(ref, value) => {
+		ref match {
+		  case Reference(name, type_, None) =>
+		    // TODO: factor in the declared type to help evaluate the expression
+		    bodyAssignements = bodyAssignements + (name -> TypeMap(Map(type_ -> value.evaluate(bodyAssignements, Any))))
+		  case Reference(name, type_, Some(expr)) =>
+		    // if is assignable, modify variable in assignements to reflect this assignement
+		}
+	      }
+	      case _ => ;
+	    }
+	  }
+	  expr.evaluate(bodyAssignements)
+	}
+	case _ => nothing
+      }
+    def evaluateOutput(assignements: Map[String, TypeMap], expected:Type): List[String] = {
+      var bodyAssignements = assignements
+      
+      for (statement <- content) yield {
 	statement match {
 	  case Assignement(ref, value) => {
 	    ref match {
-	      case Reference(name, type_, None) =>
+	      case Reference(name, type_, None) => {
 		// TODO: factor in the declared type to help evaluate the expression
-		bodyAssignements = bodyAssignements + (name -> TypeMap(Map(type_ -> value.evaluate(bodyAssignements, Any))))
-	      case Reference(name, type_, Some(expr)) =>
+		val evaluatedExpr = value.evaluate(bodyAssignements, Any)
+		bodyAssignements = bodyAssignements + (name -> TypeMap(Map(type_ -> evaluatedExpr)))
+		name + " = " + evaluatedExpr.toString
+	      }
+	      case Reference(name, type_, Some(expr)) => "unsupported assignation"
 		// if is assignable, modify variable in assignements to reflect this assignement
 	    }
 	  }
-	  case _ => ;
+	  case ref: Reference => ref.evaluate(bodyAssignements) match {
+	    case resultRef: Reference if (resultRef == ref) => s"invalid reference: ${ref.name}"
+	    case value => value.toString
+	  }
+	  case expr: Expression => expr.evaluate(bodyAssignements).toString
+	  case stat: UncompiledStatement => "invalid statement"
 	}
       }
-      expr.evaluate(bodyAssignements)
     }
   }
   
@@ -259,34 +292,45 @@ object LanguageAST {
 class UnexpectedEndOfLineError extends Exception
 import scala.util.parsing.combinator._
 
-object StatementParser extends RegexParsers with PackratParsers {
+object Parsers extends RegexParsers with PackratParsers {
   import LanguageAST._
+  import LanguageAST.ExpressionImplicits._
 
   val integer = """[1-9][0-9]*"""r
   
-  val identifier = """[a-zA-Z+*=\-]([a-zA-Z0-9+*=\-]|_[a-zA-Z0-9])*"""r
+  val identifier = """[a-zA-Z+*=\-~<>]([a-zA-Z0-9+*=\-~<>]|_[a-zA-Z0-9])*"""r
 
   def reel = integer ~ "." ~ ("""[0-9][0-9]*"""r) ^^ {
     case (firstpart ~ "." ~ lastPart) => firstpart + "." + lastPart
   }
 
-  def statement = assignement | expression
+  def statement = (assignement | expression) ^^ { StatementCodeLine(_) }
+  
+  def codeLine = beginIfMultiLine | statement
+  
+  def beginIfMultiLine = "if" ~> "(" ~> expression <~ ")" <~ ":" ^^ { BeginIfMultiLine(_) }
   
   def assignement = reference ~ ":=" ~ expression ^^ {
     case (ref ~ ":=" ~ expression) => Assignement(ref, expression)
   }
   
-  lazy val reference: PackratParser[Reference] = expression ~ "." ~ identifier ~ (":" ~ identifier).? ^^ {
+  lazy val reference: PackratParser[Reference] = expression ~ "." ~ identifier ~ (":" ~> identifier).? ^^ {
     case (expression ~ "." ~ name ~ None) => Reference(name, None, Some(expression))
-    case (expression ~ "." ~ name ~ Some(":" ~ type_)) => Reference(name, Some(type_), Some(expression))
+    case (expression ~ "." ~ name ~ Some(type_)) => Reference(name, Some(type_), Some(expression))
   } | identifier ^^ {
     case (name) => Reference(name)
   }
   
-  lazy val expression: PackratParser[Expression] = function_call |
+  lazy val expression: PackratParser[Expression] = ifExpression |
+						   function_call |
 						   number |
 						   boolean_ |
 						   reference
+						   
+  def ifExpression = ("if" ~> "(" ~> expression <~ ")") ~ expression ~ ("else" ~> expression).? ^^ {
+    case (condition ~ passExpression ~ None) => IfExpression(condition, Block(passExpression))
+    case (condition ~ passExpression ~ Some(failExpresson)) => IfExpression(condition, Block(passExpression), Some(Block(failExpresson)))
+  }
 
   def boolean_ = "true" ^^ { case _ => ObjectExpression(Boolean_(true)) } |
 		"false" ^^ { case _ => ObjectExpression(Boolean_(false)) }
@@ -299,63 +343,54 @@ object StatementParser extends RegexParsers with PackratParsers {
     case (expression ~ " " ~ identifier ~ " " ~ param) =>
     Application(Reference(identifier, None, Some(expression)), List(param))
   }
+  
+  trait CodeLine
+  case class StatementCodeLine(statement: Statement)
+  case class BeginIfMultiLine(condition: Expression)
 }
 
 object Parser {
   import LanguageAST._
-  def parse(content: String): List[Statement] = {
-    val lines = content.split('\n')
-    for (line <- lines if line != "") yield parseSingleStatement(line) match {
-      case StatementParser.Success(stat, _) => stat
-    }
-  }.toList
   
-  def parseSingleStatement(content: String) = {
+  def parse(content: String): Block = {
+    def parse(lines: List[String], statements: List[Statement]): Block =
+      if (lines.isEmpty) Block(statements)
+      else
+	if (lines.head.startsWith("\t")) throw new Error
+	else parseSingleCodeLine(lines.head) match {
+	  case Parsers.Success(Parsers.BeginIfMultiLine(cond), _) => {
+	    val (innerBlock, rest) = lines.tail.span(_.startsWith("\t"))
+	    if (innerBlock.isEmpty) throw new Error
+	    else parse(rest, statements :+ IfExpression(cond, parse(innerBlock.map(_.tail), Nil)))
+	  }
+	  case Parsers.Success(Parsers.StatementCodeLine(statement), _) =>
+	    parse(lines.tail, statements :+ statement)
+	  case Parsers.Failure(_, _) =>
+	    parse(lines.tail, statements :+ UncompiledStatement(lines.head))
+	}
+    parse(content.lines.toList, Nil)
+  }
+  
+  def parseSingleCodeLine(content: String) = {
     if (content.contains('\n')) throw new UnexpectedEndOfLineError
-    StatementParser.parseAll(StatementParser.statement, content)
+    Parsers.parseAll(Parsers.codeLine, content)
   }
   
-  def parseSingleValidStatement(content: String) = {
-    parseSingleStatement(content) match {
-      case StatementParser.Success(stat, _) => stat
+  def parseSingleValidCodeLine(content: String) = {
+    parseSingleCodeLine(content) match {
+      case Parsers.Success(stat, _) => stat
     }
   }
+  
+  def parseSingleValidStatement(content: String) =
+    parseSingleValidCodeLine(content) match {
+      case Parsers.StatementCodeLine(statement) => statement
+    }
 }
 
 object WorkSheet {
   import LanguageAST._
   def computeResults(code: String): List[String] = {
-  
-    var assignements: Map[String, TypeMap] = Map()
-  
-    code.split('\n').toList.map{ line =>
-      if (line == "") ""
-      else Parser.parseSingleStatement(line) match {
-	case StatementParser.Success(ass: Assignement, _) => {
-	  val evaluatedExpr = ass.value.evaluate(assignements)
-	  ass.ref match {
-	    case Reference(name, type_, None) => {
-	      // TODO: Take expected type into account
-	      val evaluatedExpr = ass.value.evaluate(assignements, Any)
-	      assignements = assignements + (name -> TypeMap(Map(type_ -> evaluatedExpr)))
-	      name + " = " + evaluatedExpr.toString
-	    }
-	    case Reference(name, type_, Some(expr)) => {
-	      // if is assignable, modify variable in assignements to reflect this assignement
-	      "Currently unsupported assignement"
-	    }
-	  }
-	}
-	case StatementParser.Success(ref: Reference, _) => ref.evaluate(assignements) match {
-	  case resultRef: Reference if (resultRef == ref) => s"invalid reference: ${ref.name}"
-	  case value => value.toString
-	}
-	case StatementParser.Success(exp: Expression, _) => exp.evaluate(assignements) match {
-	  case obj: Object_ => obj.toString
-	  case _ => "invalid expression"
-	}
-	case _ => "invalid statement"
-      }
-    }
+    Parser.parse(code).evaluateOutput(Map(), Any)
   }
 }
