@@ -251,6 +251,14 @@ else:
 		actual must be equalTo expected
 	}
 	
+	"parse a simple function assignement 2" in {
+		val code = "bbe := () => 7"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = Assignement(Reference("bbe"), new Function(Block(ObjectExpression(Number_(7)))))
+		actual must be equalTo expected
+	}
+	
 	"parse a simple function application" in {
 		val code = "a()"
 		

@@ -144,6 +144,7 @@ object LanguageAST {
 	case other: Function => params == other.params && body == other.body
 	case _ => false
       }
+    override def toString = "(" + params.mkString(",") + ") =>" 
   }
 
   case class Param(name: String, type_ : Option[String] = None)

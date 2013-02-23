@@ -160,7 +160,7 @@ else:
     val simple_function_declaration = "bbe := () => 7"
     s"a simple function can be declared as per the following example: $simple_function_declaration" in {
       val expected = List("bbe = () =>")
-      WorkSheet.computeResults(equal_simple_assignation) must be equalTo expected
+      WorkSheet.computeResults(simple_function_declaration) must be equalTo expected
     }
     
     val optional_typing = """cars := getXMLOfCar()
