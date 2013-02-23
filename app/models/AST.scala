@@ -306,9 +306,11 @@ object Parsers extends RegexParsers with PackratParsers {
 
   def statement = (assignement | expression) ^^ { StatementCodeLine(_) }
   
-  def codeLine = beginIfMultiLine | statement
+  def codeLine = beginIfMultiLine | beginElseMultiLine | statement
   
   def beginIfMultiLine = "if" ~> "(" ~> expression <~ ")" <~ ":" ^^ { BeginIfMultiLine(_) }
+  
+  def beginElseMultiLine = ("else" ~> ":") ^^ { string => new BeginElseMultiLine }
   
   def assignement = reference ~ ":=" ~ expression ^^ {
     case (ref ~ ":=" ~ expression) => Assignement(ref, expression)
@@ -322,11 +324,16 @@ object Parsers extends RegexParsers with PackratParsers {
   }
   
   lazy val expression: PackratParser[Expression] = ifExpression |
+						   function |
 						   function_call |
 						   number |
 						   boolean_ |
 						   reference
 						   
+  def function = (("(" ~> repsep(identifier, ",") <~ ")" <~ "=>") ~ expression) ^^ {
+    case (params ~ expression) => ObjectExpression(new Function(Block(expression), params.map(Param(_))))
+  }
+  
   def ifExpression = ("if" ~> "(" ~> expression <~ ")") ~ expression ~ ("else" ~> expression).? ^^ {
     case (condition ~ passExpression ~ None) => IfExpression(condition, Block(passExpression))
     case (condition ~ passExpression ~ Some(failExpresson)) => IfExpression(condition, Block(passExpression), Some(Block(failExpresson)))
@@ -345,23 +352,37 @@ object Parsers extends RegexParsers with PackratParsers {
   }
   
   trait CodeLine
-  case class StatementCodeLine(statement: Statement)
-  case class BeginIfMultiLine(condition: Expression)
+  case class StatementCodeLine(statement: Statement) extends CodeLine
+  case class BeginIfMultiLine(condition: Expression) extends CodeLine
+  class BeginElseMultiLine extends CodeLine
 }
 
 object Parser {
   import LanguageAST._
   
   def parse(content: String): Block = {
+    def getBlockAndRest(lines: List[String]) = {
+      val (innerBlock, rest) = lines.span(_.startsWith("\t"))
+      if (innerBlock.isEmpty) throw new Error
+      else (innerBlock.map(_.tail), rest)
+    }
     def parse(lines: List[String], statements: List[Statement]): Block =
       if (lines.isEmpty) Block(statements)
       else
 	if (lines.head.startsWith("\t")) throw new Error
 	else parseSingleCodeLine(lines.head) match {
 	  case Parsers.Success(Parsers.BeginIfMultiLine(cond), _) => {
-	    val (innerBlock, rest) = lines.tail.span(_.startsWith("\t"))
-	    if (innerBlock.isEmpty) throw new Error
-	    else parse(rest, statements :+ IfExpression(cond, parse(innerBlock.map(_.tail), Nil)))
+	    val (innerBlock, rest) = getBlockAndRest(lines.tail)
+	    parse(rest, statements :+ IfExpression(cond, parse(innerBlock, Nil)))
+	  }
+	  case Parsers.Success(_ : Parsers.BeginElseMultiLine, _) => {
+	    statements.last match {
+	      case IfExpression(cond, ifBlock, None) => {
+		val (innerBlock, rest) = getBlockAndRest(lines.tail)
+		parse(rest, statements.init :+ IfExpression(cond, ifBlock, Some(parse(innerBlock, Nil))))
+	      }
+	      case _ => throw new Error
+	    }
 	  }
 	  case Parsers.Success(Parsers.StatementCodeLine(statement), _) =>
 	    parse(lines.tail, statements :+ statement)

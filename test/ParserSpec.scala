@@ -136,5 +136,127 @@ a"""
 				  Some(Block(Reference("b"))))
       actual must be equalTo expected
     }
+    
+    "parse a simple pass multiline if expression" in {
+      val code = """if(true):
+	4"""
+
+      val actual = Parser.parse(code)
+      val expected = Block(IfExpression(ObjectExpression(Boolean_(true)), Block(ObjectExpression(Number_(4)))))
+      actual must be equalTo expected
+    }
+    
+    "parse a simple fail multiline if expression" in {
+      val code = """if(false):
+	4"""
+
+      val actual = Parser.parse(code)
+      val expected = Block(IfExpression(ObjectExpression(Boolean_(false)), Block(ObjectExpression(Number_(4)))))
+      actual must be equalTo expected
+    }
+    
+    "parse a complexe multiline if expression" in {
+      val code = """if(a.==(7.+(9))):
+	a.+(g)"""
+  
+      val actual = Parser.parse(code)
+      val expected = Block(IfExpression(simpleMethodCall(Reference("a"), simpleMethodCall(7, 9, "+"), "=="),
+                                        Block(simpleMethodCall("a", "g", "+"))))
+      actual must be equalTo expected
+    }
+    
+	"parse a simple pass multiline if/else expression" in {
+		val code = """if(true):
+	7
+else:
+	3"""
+		val actual = Parser.parse(code)
+		val expected = Block(IfExpression(ObjectExpression(Boolean_(true)), Block(ObjectExpression(Number_(7))), Some(Block(ObjectExpression(Number_(3))))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple fail multiline if/else expression" in {
+		val code = """if(false):
+	7
+else:
+	3"""
+		val actual = Parser.parse(code)
+		val expected = Block(IfExpression(ObjectExpression(Boolean_(false)), Block(ObjectExpression(Number_(7))), Some(Block(ObjectExpression(Number_(3))))))
+		actual must be equalTo expected
+	}
+	
+	"parse a complexe multiline if/else expression" in {
+		val code = """if(a.==(b)):
+	a.+(b)
+else:
+	a.-(b)"""
+		val actual = Parser.parse(code)
+		val expected = Block(IfExpression(simpleMethodCall("a", "b", "=="), Block(simpleMethodCall("a", "b", "+")), Some(Block(simpleMethodCall("a", "b", "-")))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple function" in {
+		val code = "() => 5"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(ObjectExpression(Number_(5)))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple parameterized function" in {
+		val code = "(a) => 6"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(ObjectExpression(Number_(6))), List(Param("a"))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple multiparameterized function" in {
+		val code = "(a, b) => 6"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(ObjectExpression(Number_(6))), List(Param("a"), Param("b"))))
+		actual must be equalTo expected
+	}
+	
+	"parse a complexe function" in {
+		val code = "() => 5.+(9)"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(simpleMethodCall(5, 9, "+"))))
+		actual must be equalTo expected
+	}
+	
+	"parse a complexe parameterized function" in {
+		val code = "(car) => car.isModel(model)"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(simpleMethodCall("car", "model", "isModel")), List(Param("car"))))
+		actual must be equalTo expected
+	}
+	
+	"parse a complexe multiparameterized function" in {
+		val code = "(car, bogus) => car.isModel(model)"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = ObjectExpression(new Function(Block(simpleMethodCall("car", "model", "isModel")), List(Param("car"), Param("bogus"))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple function assignement" in {
+		val code = "a := () => 5"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = Assignement(Reference("a"), new Function(Block(ObjectExpression(Number_(5)))))
+		actual must be equalTo expected
+	}
+	
+	"parse a simple function application" in {
+		val code = "a()"
+		
+		val actual = Parser.parseSingleValidStatement(code)
+		val expected = Application(Reference("a"))
+		actual must be equalTo expected
+	}
   }
 }
