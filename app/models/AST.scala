@@ -147,7 +147,9 @@ object LanguageAST {
     override def toString = "(" + params.mkString(",") + ") =>" 
   }
 
-  case class Param(name: String, type_ : Option[String] = None)
+  case class Param(name: String, type_ : Option[String] = None) {
+    override def toString = name + type_.map(":" + _).getOrElse("")
+  }
 
   case class Block(content: List[Statement]) extends Expression {
     def evaluate(assignements: Map[String, TypeMap], expected:Type) =
