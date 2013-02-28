@@ -301,7 +301,7 @@ object Parsers extends RegexParsers with PackratParsers {
   import LanguageAST._
   import LanguageAST.ExpressionImplicits._
 
-  val integer = """[1-9][0-9]*"""r
+  val integer = """[0-9][0-9]*"""r
   
   val identifier = """[a-zA-Z+*=\-~<>]([a-zA-Z0-9+*=\-~<>]|_[a-zA-Z0-9])*"""r
 

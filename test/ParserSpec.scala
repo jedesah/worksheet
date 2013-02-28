@@ -266,5 +266,12 @@ else:
 		val expected = Application(Reference("a"))
 		actual must be equalTo expected
 	}
+	
+	val bug_1 = "michel_function(0)"
+	"bug1" in {
+		val expected = Application(Reference("michel_function"), List(ObjectExpression(Number_(0))))
+		val actual = Parser.parseSingleValidStatement(bug_1)
+		actual must be equalTo expected
+	}
   }
 }
