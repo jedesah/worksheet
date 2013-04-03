@@ -3,26 +3,73 @@ package controllers
 import play.api._
 import play.api.mvc._
 
+import play.api.libs.iteratee._
+import play.api.libs.json._
+
 import models.WorkSheet
+import scala.tools.nsc.interpreter.IMain
+import scala.reflect.runtime.{universe => ru}
+import scala.reflect.runtime.universe._
+import scala.tools.reflect.ToolBox
+import scala.tools.reflect.ToolBoxError
 
 object Application extends Controller {
-  
-  def index = Action { implicit request =>
-    Ok(views.html.index())
+  def index = Action { implicit request => 
+    Ok(views.html.index(default.code))
   }
+  
+  val default = new WorkSpace
   
   def update = WebSocket.using[String] { implicit request =>
-    import play.api.libs.iteratee._
-    import play.api.libs.json._
-
-    val (enumerator, channel) = Concurrent.broadcast[String]
     
     val in = Iteratee.foreach[String](content => {
-      channel.push(Json.stringify(Json.toJson(WorkSheet.computeResults(content))))
+      default.modifyCode(content)
     })
     
-    (in, enumerator)
+    (in, default.enumerator)
   }
+  
+	val cm = ru.runtimeMirror(getClass.getClassLoader)
+	val toolBox = cm.mkToolBox()
+  
+	class WorkSpace {
+		val (enumerator, channel) = Concurrent.broadcast[String]
+		var code = ""
+		
+		implicit val userWrites = Json.writes[CodeChangeResult]
+	
+		def modifyCode(newCode: String) = {
+			code = newCode
+			channel.push(Json.stringify(Json.toJson(CodeChangeResult(newCode, ScalaWorkSheet.computeResults(newCode)))))
+		}
+	}
+	
+	case class CodeChangeResult(code: String, evaluatedOutput: List[String])
+	
+	object ScalaWorkSheet {
+		def computeResults(code: String): List[String] = {
+			var accu = ""
+			code.lines.toList.map{ line =>
+			  
+			  try {
+			    
+			    val subTree = toolBox.parse(line)
+			    println(showRaw(subTree))
+			    val oldAccu = accu
+			    accu = accu + "\n" + line
+			    subTree match {
+			      case ValDef(_, newTermName, _, expr) =>
+				newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
+			      case _            => toolBox.eval(toolBox.parse(accu)).toString
+			    } 
+			  } catch {  
+			    case ToolBoxError(msg, cause) => {
+			      msg.dropWhile(_ != ':').drop(2)
+			    }
+			  }
+			}
+		}
+	}
   
   def driveTest = Action { request =>
     import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow

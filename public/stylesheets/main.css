@@ -1,16 +1,16 @@
 #result, #console {
-  float: left;
+  float: right;
   font-size:12px;
 }
 
-#editor {
+#worksheet {
   /*position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;*/
-  height: 500px;
-  width: 500px;
+  height: 100%;
+  width: 99%;
 }
 
 #eval {

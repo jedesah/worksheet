@@ -2,7 +2,7 @@
 
 @main("REPL") {
   <textarea id="worksheet" cols="100" rows="50" name="code">@code</textarea>
-  <div style="position: absolute; top: 10px; left: 10px; height: 200px; width: 820px; pointer-events: none" id="result">
+  <div style="position: absolute; top: 10px; left: 10px; height: 200px; width: 1800px; pointer-events: none" id="result">
     @results.map { result =>
       <span style="float: right">@result</span>
     }
@@ -20,10 +20,11 @@
       var receiveResult = function(event) {
 	$("#result").html('')
 	var data = JSON.parse(event.data)
+	$("#worksheet").val(data.code)
 	
 	var offset = 0;
 	
-	$(data).each(function() {
+	$(data.evaluatedOutput).each(function() {
 	  $("#result").append('<span style="right: 0px; position: absolute; top:' + offset + 'px;">' + this + '</span>')
 	  //$("#result").append('<p><span style="float: right;">' + this + '</span></p>')
 	  offset += 15;
