@@ -2,20 +2,22 @@
 
 @main("REPL") {
   <div id="worksheet">@code</div>
-  <div id="results">
-    @results.map { result =>
-      <span style="float: right">@result</span>
-    }
-  </div>
+  <div id="results">@results.mkString("\n")</div>
   
   <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
   <script type="text/javascript" charset="utf-8">
     $(function() {
         var ignoreChange = false
         var offlineChanges = new Array();
+
 		var editor = ace.edit("worksheet");
 		editor.setTheme("ace/theme/twilight");
 		editor.getSession().setMode("ace/mode/scala");
+
+        var resultEditor = ace.edit("results");
+        resultEditor.setTheme("ace/theme/twilight");
+        resultEditor.getSession().setMode("ace/mode/scala");
+        resultEditor.setReadOnly(true);
     
         var ws = window['MozWebSocket'] ? MozWebSocket : WebSocket
         var evalSocket = new ws("@routes.Application.update().webSocketURL()")
@@ -29,7 +31,6 @@
         }
       
         var receiveResult = function(event) {
-	        $("#results").html('');
 	        var data = JSON.parse(event.data);
 	        console.log(data);
             var codeChange = JSON.parse(data.code)
@@ -45,10 +46,7 @@
 
 	        var offset = 0;
 
-            $(data.evaluatedOutput).each(function() {
-              $("#results").append('<span style="position: absolute; top:' + offset + 'px;">' + this + '</span>')
-              offset += 15;
-            })
+            resultEditor.setValue(data.evaluatedOutput);
          }
       
         editor.on("change",sendMessage)

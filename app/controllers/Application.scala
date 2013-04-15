@@ -61,11 +61,11 @@ object Application extends Controller {
       }
       println("allo5")
       println(code.textValue.asString)
-			channel.push(Json.stringify(Json.toJson(CodeChangeResult(newCode, ScalaWorkSheet.computeResults(code.textValue.asString)))))
+			channel.push(Json.stringify(Json.toJson(CodeChangeResult(newCode, ScalaWorkSheet.computeResults(code.textValue.asString).mkString("\n")))))
 		}
 	}
 	
-	case class CodeChangeResult(code: String, evaluatedOutput: List[String])
+	case class CodeChangeResult(code: String, evaluatedOutput: String)
 	
 	object ScalaWorkSheet {
 		def computeResults(code: String): List[String] = {
