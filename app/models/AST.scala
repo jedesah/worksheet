@@ -413,10 +413,3 @@ object Parser {
       case Parsers.StatementCodeLine(statement) => statement
     }
 }
-
-object WorkSheet {
-  import LanguageAST._
-  def computeResults(code: String): List[String] = {
-    Parser.parse(code).evaluateOutput(Map(), Any)
-  }
-}
