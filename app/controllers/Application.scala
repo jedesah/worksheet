@@ -23,6 +23,10 @@ object Application extends Controller {
     Ok(views.html.code_sheet(demo1JRWorkSpace, "JR"))
   }
 
+  def demo1_ScalaCodeSheet = Action { implicit request =>
+    Ok(views.html.code_sheet(demo1ScalaWorkSpace, "Scala"))
+  }
+
   val demo1Code = """a := 10
 b := e.+(c)
 b
@@ -31,9 +35,15 @@ e := 9
 b
 """
 
+  val scalaDemoCode =
+    """val a = 10
+      |val b = a + -6
+      |val result = List(1,2,3,4).take(Math.sqrt(b).toInt)""".stripMargin
+
   val defaultScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet)
   val defaultJRWorkSpace = WorkSpaces.create(JrCodeSheet)
   val demo1JRWorkSpace = WorkSpaces.create(JrCodeSheet, demo1Code)
+  val demo1ScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet, scalaDemoCode)
   
   def update(id: String) = WebSocket.using[String] { implicit request =>
 

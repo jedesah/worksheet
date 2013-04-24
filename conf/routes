@@ -8,6 +8,7 @@ GET     /scala                          controllers.Application.scalaCodeSheet
 GET	    /update/:id             		controllers.Application.update(id)
 GET     /jr                             controllers.Application.jrCodeSheet
 GET     /jr/demo1                       controllers.Application.demo1_JRCodeSheet
+GET     /scala/demo1                    controllers.Application.demo1_ScalaCodeSheet
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
