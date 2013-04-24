@@ -62,8 +62,8 @@ object Edits {
   case class Merge(from: Set[TextEdit]) {
     def textValue = from.reduce(_.rebase(_)).textValue
   }
-  object NilEdit extends TextEdit {
-    def textValue = List("")
+  case class BaseEdit(init: String) extends TextEdit {
+    def textValue = if (init.isEmpty) List("") else init.lines.toList
     def rebase(on: TextEdit) = on
   }
 }

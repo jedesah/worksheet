@@ -1,14 +1,10 @@
 package controllers
 
-import play.api._
 import play.api.mvc._
 
 import play.api.libs.iteratee._
-import play.api.libs.json._
 
 import models._
-import scala.tools.nsc.interpreter.IMain
-import models.Edits._
 
 object Application extends Controller {
   def home_page = Action { implicit request =>
@@ -23,8 +19,21 @@ object Application extends Controller {
     Ok(views.html.code_sheet(defaultJRWorkSpace, "JR"))
   }
 
-  val defaultScalaWorkSpace = WorkSpaces.create
-  val defaultJRWorkSpace = WorkSpaces.create
+  def demo1_JRCodeSheet = Action { implicit request =>
+    Ok(views.html.code_sheet(demo1JRWorkSpace, "JR"))
+  }
+
+  val demo1Code = """a := 10
+b := e.+(c)
+b
+c := 5
+e := 9
+b
+"""
+
+  val defaultScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet)
+  val defaultJRWorkSpace = WorkSpaces.create(JrCodeSheet)
+  val demo1JRWorkSpace = WorkSpaces.create(JrCodeSheet, demo1Code)
   
   def update(id: String) = WebSocket.using[String] { implicit request =>
 
