@@ -3,9 +3,11 @@
 # ~~~~
 
 # Home page
-GET     /                           	controllers.Application.index
-GET     /index1                         controllers.Application.index1
-GET	/update				controllers.Application.update
+GET     /                           	controllers.Application.home_page
+GET     /scala                          controllers.Application.scalaCodeSheet
+GET	    /update/:id             		controllers.Application.update(id)
+GET     /jr                             controllers.Application.jrCodeSheet
+GET     /jr/demo1                       controllers.Application.demo1_JRCodeSheet
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

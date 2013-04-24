@@ -1,8 +1,10 @@
-@(code: String = "", results: List[String] = Nil)(implicit request: RequestHeader)
+@(workSpace: WorkSpace, language: String)(implicit request: RequestHeader)
+
+@import models.Edits._
 
 @main("REPL") {
-  <div id="worksheet">@code</div>
-  <div id="results">@results.mkString("\n")</div>
+  <div id="worksheet">@workSpace.code.textValue.asString</div>
+  <div id="results">@workSpace.evaluateCode</div>
   
   <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
   <script type="text/javascript" charset="utf-8">
@@ -20,13 +22,16 @@
         resultEditor.setReadOnly(true);
     
         var ws = window['MozWebSocket'] ? MozWebSocket : WebSocket
-        var evalSocket = new ws("@routes.Application.update().webSocketURL()")
+        var evalSocket = new ws("@routes.Application.update(workSpace.id).webSocketURL()")
       
         var sendMessage = function(e) {
             if (!ignoreChange) {
-                console.log(e.data)
+                var serverRPC = {};
+                serverRPC.editorDelta = e.data
+                serverRPC.evaluationLanguage = "@language"
+                console.log(serverRPC.evaluationLanguage)
                 offlineChanges.push(e.data)
-	            evalSocket.send(JSON.stringify(e.data))
+	            evalSocket.send(JSON.stringify(serverRPC))
             }
         }
       
