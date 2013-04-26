@@ -30,9 +30,8 @@ object ScalaCodeSheet extends CodeSheet {
               case _            => toolBox.eval(toolBox.parse(accu)).toString
             }
           } catch {
-            case ToolBoxError(msg, cause) => {
-              msg.dropWhile(_ != ':').drop(2)
-            }
+            case ToolBoxError(msg, cause) => msg.dropWhile(_ != ':').drop(2)
+            case _: Throwable => /* The reflection compiler might hit some assertions because we are stressing it a bit much */ ""
           }
         }
     }
