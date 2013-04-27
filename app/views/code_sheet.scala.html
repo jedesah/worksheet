@@ -3,62 +3,72 @@
 @import models.Edits._
 
 @main("REPL") {
-  <div id="worksheet">@workSpace.code.textValue.asString</div>
-  <div id="results">@workSpace.evaluateCode</div>
-  
-  <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+  <button id="authorizeButton" disabled>You must authorize</button>
+  <form>
+      <textarea id="worksheet">@workSpace.code.textValue.asString</textarea>
+      <textarea id="results">@workSpace.evaluateCode</textarea>
+  </form>
+
+  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+  <script type="text/javascript" src="@routes.Assets.at("javascripts/realtime-client-utils.js")"></script>
+  <script src="@routes.Assets.at("javascripts/codemirror.js")"></script>
+  <link rel="stylesheet" href="@routes.Assets.at("stylesheets/codemirror.css")">
   <script type="text/javascript" charset="utf-8">
     $(function() {
-        var ignoreChange = false
-        var offlineChanges = new Array();
+        var programmaticChange = false;
 
-		var editor = ace.edit("worksheet");
-		editor.setTheme("ace/theme/twilight");
-		editor.getSession().setMode("ace/mode/scala");
+		var editor = CodeMirror.fromTextArea(document.getElementById('worksheet'), {
+            lineNumbers: true
+        });
+        //var results = CodeMirror.fromTextArea(document.getElementById('results'));
 
-        var resultEditor = ace.edit("results");
-        resultEditor.setTheme("ace/theme/twilight");
-        resultEditor.getSession().setMode("ace/mode/scala");
-        resultEditor.setReadOnly(true);
-    
-        var ws = window['MozWebSocket'] ? MozWebSocket : WebSocket
-        var evalSocket = new ws("@routes.Application.update(workSpace.id).webSocketURL()")
-      
-        var sendMessage = function(e) {
-            if (!ignoreChange) {
-                var serverRPC = {};
-                serverRPC.editorDelta = e.data
-                serverRPC.evaluationLanguage = "@language"
-                console.log(serverRPC.evaluationLanguage)
-                offlineChanges.push(e.data)
-	            evalSocket.send(JSON.stringify(serverRPC))
-            }
+        var initializeModel = function(model) {
+            var string = model.createString('Hello');
+            model.getRoot().set('text', string);
         }
-      
-        var receiveResult = function(event) {
-	        var data = JSON.parse(event.data);
-	        console.log(data);
-            var codeChange = JSON.parse(data.code)
-            console.log(codeChange)
-            if (offlineChanges.length == 0/* || offlineChanges[offlineChanges.length - 1] != codeChange*/) {
-                ignoreChange = true;
-	            editor.getSession().doc.applyDeltas([codeChange]);
-                ignoreChange = false;
-            }
-            else {
-                offlineChanges.pop();
+
+        var onFileLoaded = function(doc) {
+            var string = doc.getModel().getRoot().get('text');
+
+            var updateRealTimeString = function(editor) {
+                if (!programmaticChange) {
+                    string.setText(editor.getValue())
+                }
             }
 
-	        var offset = 0;
+            var updateEditor = function(e) {
+                if (!e.isLocal) {
+                    var doc = editor.getDoc();
+                    var pos = doc.posFromIndex(e.index);
+                    programmaticChange = true;
+                    doc.replaceRange(e.text, pos);
+                    programmaticChange = false;
+                }
+            }
 
-            resultEditor.setValue(data.evaluatedOutput);
-         }
-      
-        editor.on("change",sendMessage)
-      
-        evalSocket.onmessage = receiveResult
+            editor.on("change", updateRealTimeString)
+            string.addEventListener(gapi.drive.realtime.EventType.TEXT_INSERTED, updateEditor);
+            string.addEventListener(gapi.drive.realtime.EventType.TEXT_DELETED, updateEditor);
+            programmaticChange = true;
+            editor.setValue(string.getText());
+            programmaticChange = false;
+        }
 
-        var resultPanel = $("#results");
+        var realtimeOptions = {
+            clientId: '888337082644.apps.googleusercontent.com',
+            authButtonElementId: 'authorizeButton',
+            initializeModel: initializeModel,
+            autoCreate: true,
+            defaultTitle: "New Realtime Quickstart File",
+            onFileLoaded: onFileLoaded
+        }
+
+        var realtimeLoader = new rtclient.RealtimeLoader(realtimeOptions);
+        realtimeLoader.start();
+
+
+
+        /*var resultPanel = $("#results");
         var bodyWidth = $("body").width();
 
         $("#worksheet").resizable({
@@ -72,7 +82,7 @@
             }
         });
 
-      $("#worksheet").width(bodyWidth - resultPanel.width());
+        $("#worksheet").width(bodyWidth - resultPanel.width());*/
 
     })
   </script>

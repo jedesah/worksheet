@@ -58,6 +58,7 @@ b
 
 /*def driveTest = Action { request =>
     import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
+    import com.google.api.client.auth.oauth2.Credential
     import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
     import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
     import com.google.api.client.http.FileContent
@@ -74,11 +75,33 @@ b
     import java.io.InputStreamReader
     import java.util.Arrays
 
+    val transport = new NetHttpTransport()
+    val json_factory = new JacksonFactory()
+    val secrets = new GoogleClientSecrets()
+    val CLIENT_ID = "888337082644.apps.googleusercontent.com"
+    val CLIENT_SECRET = "Zw1gOpeT7rHO_Br0UQfTtJvJ"
+    val REDIRECT_URI = "myURL"
+    var secrets = new GoogleClientSecrets()
+    secrets.set("client_id", CLIENT_ID)
+    secrets.set("client_secret", CLIENT_SECRET)
+    secrets.set("redirect_uris", )
 
-    val CLIENT_ID = "YOUR_CLIENT_ID"
-    val CLIENT_SECRET = "YOUR_CLIENT_SECRET"
+    def exchangeCode(authorizationCode: String): Credential = {
+       val response: GoogleTokenResponse = new GoogleAuthorizationCodeTokenRequest(
+          transport,
+          json_factory,
+          CLIENT_ID,
+          CLIENT_SECRET,
+          authorizationCode,
+          REDIRECT_URI).execute()
+        val cred = new GoogleCredential.Builder()
 
-    val REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
+      )
+    }
+
+
+
+
   
     val httpTransport = new NetHttpTransport()
     val jsonFactory = new JacksonFactory()
