@@ -14,10 +14,6 @@
   <link rel="stylesheet" href="@routes.Assets.at("stylesheets/codemirror.css")">
   <script type="text/javascript" charset="utf-8">
     $(function() {
-          window.onbeforeunload = function() {
-          return '';
-          };
-
         var programmaticChange = false;
 
 		/*var editor = CodeMirror(document.getElementById('worksheet'), {
@@ -61,9 +57,10 @@
                       if (e.type == "text_inserted")
                         doc.insert(pos, e.text)
                       else {
-                        var endPos = doc.indexToPosition(e.index + e.text.size, 0)
-                        var range = new Range(pos.row, pos.column, endPos.row, endPos.column)
-                        doc.remove(range)
+                        var endPos = doc.indexToPosition(e.index + e.text.size, 0);
+                        var Range = ace.require('ace/range').Range;
+                        var range = new Range(pos.row, pos.column, endPos.row, endPos.column);
+                        doc.remove(range);
                       }
                       programmaticChange = false;
                   }
