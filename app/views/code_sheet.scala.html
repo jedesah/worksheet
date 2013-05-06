@@ -112,6 +112,7 @@
 
         var updateResults = function(e) {
             results.setValue(e.data)
+            results.clearSelection();
         }
 
         editor.on("change", sendCode)
