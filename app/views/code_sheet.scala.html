@@ -4,8 +4,8 @@
 
 @main("REPL", "wtv") {
   <button id="save" class="btn">Save</button>
-  <div id="worksheet"></div>
-  <div id="results"></div>
+  <div id="worksheet">@workSpace.code.textValue.asString</div>
+  <div id="results">@workSpace.evaluateCode</div>
 
   <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
   <script type="text/javascript" src="@routes.Assets.at("javascripts/realtime-client-utils.js")"></script>
@@ -22,7 +22,6 @@
         var editor = ace.edit("worksheet");
         editor.setTheme("ace/theme/twilight");
         editor.getSession().setMode("ace/mode/scala");
-        editor.setValue(@workSpace.code.textValue.asString);
 
         /*var results = CodeMirror(document.getElementById('results'), {
             lineNumbers: true
@@ -31,7 +30,6 @@
         results.setTheme("ace/theme/twilight");
         results.getSession().setMode("ace/mode/scala");
         results.setReadOnly(true);
-        results.setValue(@workSpace.evaluateCode);
 
           var initializeModel = function(model) {
             var string = model.createString(editor.getValue());
