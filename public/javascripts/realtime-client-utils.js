@@ -282,7 +282,7 @@ rtclient.RealtimeLoader = function(options) {
   this.initializeModel = rtclient.getOption(options, 'initializeModel');
   this.registerTypes = rtclient.getOption(options, 'registerTypes', function(){})
   this.autoCreate = rtclient.getOption(options, 'autoCreate', false); // This tells us if need to we automatically create a file after auth.
-  this.defaultTitle = rtclient.getOption(options, 'defaultTitle', 'New Realtime File');
+  this.defaultTitle = rtclient.getOption(options, 'defaultTitle', 'New CodeSheet');
   this.authorizer = new rtclient.Authorizer(options);
 }
 

@@ -1,0 +1,66 @@
+http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js
+
+==============================================================
+
+val begin = List(1.0, 2.0, 3.0)
+
+val end = List("a", "b", "c")
+
+begin ++ end
+end ++ begin
+begin.take(2).drop(1) ++ end.drop(1)
+
+trait Tree[A]
+case class Node[A](subTrees: List[Tree[A]]) extends Tree[A]
+case class Leaf[A](content: A) extends Tree[A]
+
+val first: Tree[Int] = Leaf(2)
+val second = Leaf(4)
+val top = Node(List(first, second))
+
+val coll = Set(first, second, top)
+
+coll take 1
+
+(1 until 100).sum
+
+def stub = true
+
+if (stub) "Hello" else "ByeBye"
+
+=================================================================
+
+val begin = List(1.0, 2.0, 3.0)
+
+val end = List("a", "b", "c")
+
+begin ++ end
+end ++ begin
+begin.take(2).drop(1) ++ end.drop(1)
+
+trait Tree[A] {
+    def head: A
+    def tail: Tree[A]
+}
+case class Node[A](subTrees: List[Tree[A]]) extends Tree[A] {
+    def head = ???
+    def tail = ???
+}
+case class Leaf[A](content: A) extends Tree[A] {
+    def head = ???
+    def tail = ???
+}
+
+val first: Tree[Int] = Leaf(2)
+val second = Leaf(4)
+val top = Node(List(first, second))
+
+val coll = Set(first, second, top)
+
+coll take 1
+
+(1 until 100).sum
+
+def stub = true
+
+if (stub) "Hello" else "ByeBye"

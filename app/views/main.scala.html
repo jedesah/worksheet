@@ -1,17 +1,117 @@
-@(title: String)(content: Html)
+@(title: String, activeMenuItem: String)(content: Html)
 
 <!DOCTYPE html>
-
-<html>
+<html lang="en">
     <head>
+        <meta charset="utf-8">
         <title>@title</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
         <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
         <link rel="stylesheet" media="screen" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css">
+        <!-- Le styles -->
+        <link href="@routes.Assets.at("stylesheets/bootstrap.css")" rel="stylesheet">
+        <style type="text/css">
+            body {
+            padding-top: 20px;
+            padding-bottom: 40px;
+            }
+
+            /* Custom container */
+            .container-narrow {
+            margin: 0 auto;
+            max-width: 700px;
+            }
+            .container-narrow > hr {
+            margin: 30px 0;
+            }
+
+            /* Main marketing message and sign up button */
+            .jumbotron {
+            margin: 60px 0;
+            text-align: center;
+            }
+            .jumbotron h1 {
+            font-size: 72px;
+            line-height: 1;
+            }
+            .jumbotron .btn {
+            font-size: 21px;
+            padding: 14px 24px;
+            }
+
+            /* Supporting marketing content */
+            .marketing {
+            margin: 60px 0;
+            }
+            .marketing p + h4 {
+            margin-top: 28px;
+            }
+
+            #oneone{
+                position: relative;
+                z-index:1;
+                overflow:hidden; /*if you want to crop the image*/
+            }
+
+            #oneone:before{
+            id:'twotwo';
+            z-index:-1;
+            position:absolute;
+            left:0;
+            top:0;
+            content: url('@routes.Assets.at("images/code3.png")');');
+            opacity:0.15
+            }
+        </style>
+        <link href="@routes.Assets.at("stylesheets/bootstrap-responsive.css")" rel="stylesheet">
+
+        <!-- Fav and touch icons -->
+        <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+        <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+        <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+        <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">
+        <link rel="shortcut icon" href="../assets/ico/favicon.png">
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" type="text/javascript"></script>
         <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js" type="text/javascript"></script>
     </head>
     <body>
-        @content
+    <body>
+
+        <div class="container-narrow">
+
+            <div class="masthead">
+                <ul class="nav nav-pills pull-right">
+                    <li @if(activeMenuItem == "Home") {class="active"}><a href="/">Home</a></li>
+                    <li @if(activeMenuItem == "About") {class="active"}><a href="/about">About</a></li>
+                    <li><a href="https://github.com/jedesah/worksheet">Source</a></li>
+                    <li @if(activeMenuItem == "Credit") {class="active"}><a href="/credit">Credit</a></li>
+                </ul>
+                <a href="/"><h3 class="muted">CodeSheet</h3></a>
+            </div>
+
+            <hr>
+
+            @content
+
+        </div> <!-- /container -->
+
+        <!-- Le javascript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="../assets/js/bootstrap-transition.js"></script>
+        <script src="../assets/js/bootstrap-alert.js"></script>
+        <script src="../assets/js/bootstrap-modal.js"></script>
+        <script src="../assets/js/bootstrap-dropdown.js"></script>
+        <script src="../assets/js/bootstrap-scrollspy.js"></script>
+        <script src="../assets/js/bootstrap-tab.js"></script>
+        <script src="../assets/js/bootstrap-tooltip.js"></script>
+        <script src="../assets/js/bootstrap-popover.js"></script>
+        <script src="../assets/js/bootstrap-button.js"></script>
+        <script src="../assets/js/bootstrap-collapse.js"></script>
+        <script src="../assets/js/bootstrap-carousel.js"></script>
+        <script src="../assets/js/bootstrap-typeahead.js"></script>
     </body>
 </html>

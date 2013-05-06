@@ -18,21 +18,20 @@ object ScalaCodeSheet extends CodeSheet {
         var accu = ""
         code.lines.toList.map{ line =>
 
-          try {
-
-            val subTree = toolBox.parse(line)
-            println(showRaw(subTree))
-            val oldAccu = accu
-            accu = accu + "\n" + line
-            subTree match {
-              case ValDef(_, newTermName, _, expr) =>
-            newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
-              case _            => toolBox.eval(toolBox.parse(accu)).toString
+            if (line == "") ""
+            else try {
+              val oldAccu = accu
+              accu = accu + "\n" + line
+              val subTree = toolBox.parse(line)
+              subTree match {
+                case ValDef(_, newTermName, _, expr) =>
+                  newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
+                case _            => toolBox.eval(toolBox.parse(accu)).toString
+              }
+            } catch {
+                case ToolBoxError(msg, cause) => msg.dropWhile(_ != ':').drop(2)
+                case _: Throwable => /* The reflection compiler might hit some assertions because we are stressing it a bit much */ ""
             }
-          } catch {
-            case ToolBoxError(msg, cause) => msg.dropWhile(_ != ':').drop(2)
-            case _: Throwable => /* The reflection compiler might hit some assertions because we are stressing it a bit much */ ""
-          }
         }
     }
 }

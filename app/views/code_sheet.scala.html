@@ -2,73 +2,129 @@
 
 @import models.Edits._
 
-@main("REPL") {
-  <button id="authorizeButton" disabled>You must authorize</button>
-  <form>
-      <textarea id="worksheet">@workSpace.code.textValue.asString</textarea>
-      <textarea id="results">@workSpace.evaluateCode</textarea>
-  </form>
+@main("REPL", "wtv") {
+  <button id="save" class="btn">Save</button>
+  <div id="worksheet"></div>
+  <div id="results"></div>
 
   <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
   <script type="text/javascript" src="@routes.Assets.at("javascripts/realtime-client-utils.js")"></script>
   <script src="@routes.Assets.at("javascripts/codemirror.js")"></script>
+  <script src="http://rawgithub.com/ajaxorg/ace-builds/master/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
   <link rel="stylesheet" href="@routes.Assets.at("stylesheets/codemirror.css")">
   <script type="text/javascript" charset="utf-8">
     $(function() {
+          window.onbeforeunload = function() {
+          return '';
+          };
+
         var programmaticChange = false;
 
-		var editor = CodeMirror.fromTextArea(document.getElementById('worksheet'), {
+		/*var editor = CodeMirror(document.getElementById('worksheet'), {
             lineNumbers: true
-        });
-        //var results = CodeMirror.fromTextArea(document.getElementById('results'));
+        });*/
+        var editor = ace.edit("worksheet");
+        editor.setTheme("ace/theme/twilight");
+        editor.getSession().setMode("ace/mode/scala");
+        editor.setValue(@workSpace.code.textValue.asString);
 
-        var initializeModel = function(model) {
-            var string = model.createString('Hello');
+        /*var results = CodeMirror(document.getElementById('results'), {
+            lineNumbers: true
+        });*/
+        var results = ace.edit("results");
+        results.setTheme("ace/theme/twilight");
+        results.getSession().setMode("ace/mode/scala");
+        results.setReadOnly(true);
+        results.setValue(@workSpace.evaluateCode);
+
+          var initializeModel = function(model) {
+            var string = model.createString(editor.getValue());
             model.getRoot().set('text', string);
-        }
+          }
 
-        var onFileLoaded = function(doc) {
-            var string = doc.getModel().getRoot().get('text');
+          var onFileLoaded = function(doc) {
+              var string = doc.getModel().getRoot().get('text');
 
-            var updateRealTimeString = function(editor) {
-                if (!programmaticChange) {
+              var updateRealTimeString = function(e) {
+                  if (!programmaticChange) {
                     string.setText(editor.getValue())
-                }
+                  }
+              }
+
+              var updateEditor = function(e) {
+                  if (!e.isLocal) {
+                      var doc = editor.getSession().getDocument();
+                      console.log(doc.indexToPosition)
+                      var pos = doc.indexToPosition(e.index, 0);
+                      programmaticChange = true;
+                      console.log(e.type)
+                      if (e.type == "text_inserted")
+                        doc.insert(pos, e.text)
+                      else {
+                        var endPos = doc.indexToPosition(e.index + e.text.size, 0)
+                        var range = new Range(pos.row, pos.column, endPos.row, endPos.column)
+                        doc.remove(range)
+                      }
+                      programmaticChange = false;
+                  }
+              }
+
+              editor.on("change", updateRealTimeString)
+              string.addEventListener(gapi.drive.realtime.EventType.TEXT_INSERTED, updateEditor);
+              string.addEventListener(gapi.drive.realtime.EventType.TEXT_DELETED, updateEditor);
+              programmaticChange = true;
+              console.log(string.getText());
+              editor.setValue(string.getText());
+              programmaticChange = false;
+          }
+
+        var setupCollaboration = function() {
+
+            var realtimeOptions = {
+                clientId: '888337082644.apps.googleusercontent.com',
+                authButtonElementId: 'save',
+                initializeModel: initializeModel,
+                autoCreate: true,
+                defaultTitle: "New CodeSheet",
+                onFileLoaded: onFileLoaded
             }
 
-            var updateEditor = function(e) {
-                if (!e.isLocal) {
-                    var doc = editor.getDoc();
-                    var pos = doc.posFromIndex(e.index);
-                    programmaticChange = true;
-                    doc.replaceRange(e.text, pos);
-                    programmaticChange = false;
-                }
-            }
-
-            editor.on("change", updateRealTimeString)
-            string.addEventListener(gapi.drive.realtime.EventType.TEXT_INSERTED, updateEditor);
-            string.addEventListener(gapi.drive.realtime.EventType.TEXT_DELETED, updateEditor);
-            programmaticChange = true;
-            editor.setValue(string.getText());
-            programmaticChange = false;
+            var realtimeLoader = new rtclient.RealtimeLoader(realtimeOptions);
+            realtimeLoader.start();
         }
 
-        var realtimeOptions = {
-            clientId: '888337082644.apps.googleusercontent.com',
-            authButtonElementId: 'authorizeButton',
-            initializeModel: initializeModel,
-            autoCreate: true,
-            defaultTitle: "New Realtime Quickstart File",
-            onFileLoaded: onFileLoaded
+        if (rtclient.params['fileId'] || rtclient.params['state'])
+        {
+          var realtimeOptions = {
+              clientId: '888337082644.apps.googleusercontent.com',
+              authButtonElementId: 'save',
+              initializeModel: initializeModel,
+              autoCreate: false,
+              defaultTitle: "New CodeSheet",
+              onFileLoaded: onFileLoaded
+          }
+
+          var realtimeLoader = new rtclient.RealtimeLoader(realtimeOptions);
+          realtimeLoader.start();
         }
 
-        var realtimeLoader = new rtclient.RealtimeLoader(realtimeOptions);
-        realtimeLoader.start();
+        var ws = window['MozWebSocket'] ? MozWebSocket : WebSocket
+        var evalSocket = new ws("@routes.Application.eval.webSocketURL()")
 
+        var sendCode = function() {
+            evalSocket.send(editor.getValue())
+        }
 
+        var updateResults = function(e) {
+            results.setValue(e.data)
+        }
 
-        /*var resultPanel = $("#results");
+        editor.on("change", sendCode)
+        evalSocket.onmessage = updateResults
+
+        $('#save').click(setupCollaboration)
+
+        var resultPanel = $("#results");
         var bodyWidth = $("body").width();
 
         $("#worksheet").resizable({
@@ -82,7 +138,7 @@
             }
         });
 
-        $("#worksheet").width(bodyWidth - resultPanel.width());*/
+        $("#worksheet").width(bodyWidth - resultPanel.width());
 
     })
   </script>

@@ -3,12 +3,22 @@ package controllers
 import play.api.mvc._
 
 import play.api.libs.iteratee._
+import play.api.libs.iteratee.Concurrent
 
 import models._
+import com.google.api.client.googleapis.auth.oauth2.{GoogleClientSecrets, GoogleAuthorizationCodeTokenRequest}
 
 object Application extends Controller {
   def home_page = Action { implicit request =>
     Ok(views.html.home_page())
+  }
+
+  def credit = Action { implicit request =>
+    Ok(views.html.credit())
+  }
+
+  def about = Action { implicit request =>
+    Ok(views.html.about())
   }
 
   def scalaCodeSheet = Action { implicit request =>
@@ -45,15 +55,15 @@ b
   val demo1JRWorkSpace = WorkSpaces.create(JrCodeSheet, demo1Code)
   val demo1ScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet, scalaDemoCode)
   
-  def update(id: String) = WebSocket.using[String] { implicit request =>
+  def eval = WebSocket.using[String] { implicit request =>
 
-    val workSpace = WorkSpaces.get(id)
-    
+    val (enumerator, channel) = Concurrent.broadcast[String]
+
     val in = Iteratee.foreach[String](content => {
-      workSpace.modifyCode(content)
+      channel.push(ScalaCodeSheet.computeResults(content).mkString("\n"))
     })
     
-    (in, workSpace.enumerator)
+    (in, enumerator)
   }
 
 /*def driveTest = Action { request =>
