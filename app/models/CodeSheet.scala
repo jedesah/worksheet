@@ -18,12 +18,13 @@ object ScalaCodeSheet extends CodeSheet {
         var accu = ""
         code.lines.toList.map{ line =>
 
-            if (line == "") ""
+            if (line == "" || line.startsWith("//")) ""
             else try {
               val oldAccu = accu
               accu = accu + "\n" + line
-              val subTree = toolBox.parse(line)
-              subTree match {
+              val lineAST = toolBox.parse(line)
+              lineAST match {
+                case _ : ClassDef => ""
                 case ValDef(_, newTermName, _, expr) =>
                   newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
                 case _            => toolBox.eval(toolBox.parse(accu)).toString
