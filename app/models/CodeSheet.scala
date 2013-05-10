@@ -15,6 +15,15 @@ object ScalaCodeSheet extends CodeSheet {
     val toolBox = cm.mkToolBox()
 
     def computeResults(code: String): List[String] = {
+        val wholeParses =
+          try{
+            val wholeAST = toolBox.parse(code)
+            println(showRaw(wholeAST))
+            true
+        } catch {
+          case _: Throwable => false
+        }
+
         var accu = ""
         code.lines.toList.map{ line =>
 
@@ -23,14 +32,20 @@ object ScalaCodeSheet extends CodeSheet {
               val oldAccu = accu
               accu = accu + "\n" + line
               val lineAST = toolBox.parse(line)
-              lineAST match {
-                case _ : ClassDef => ""
-                case ValDef(_, newTermName, _, expr) =>
-                  newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
-                case _            => toolBox.eval(toolBox.parse(accu)).toString
+              try {
+                lineAST match {
+                  case _ : ClassDef => ""
+                  case _ : DefDef => ""
+                  case ValDef(_, newTermName, _, expr) =>
+                    newTermName + " = " + toolBox.eval(toolBox.parse(oldAccu + "\n" + expr.toString)).toString
+                  case _            => toolBox.eval(toolBox.parse(accu)).toString
+                }
+              } catch {
+                case ToolBoxError(msg, cause) => msg.dropWhile(_ != ':').drop(2)
+                case _: Throwable => /* The reflection compiler might hit some assertions because we are stressing it a bit much */ ""
               }
             } catch {
-                case ToolBoxError(msg, cause) => msg.dropWhile(_ != ':').drop(2)
+                case ToolBoxError(msg, cause) => if (wholeParses) "" else msg.dropWhile(_ != ':').drop(2)
                 case _: Throwable => /* The reflection compiler might hit some assertions because we are stressing it a bit much */ ""
             }
         }
