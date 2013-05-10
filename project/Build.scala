@@ -4,8 +4,8 @@ import play.Project._
 
 object ApplicationBuild extends Build {
 
-  val appName         = "repl"
-  val appVersion      = "1.0-SNAPSHOT"
+  val appName         = "CodeSheet"
+  val appVersion      = "0.2-SNAPSHOT"
 
   val appDependencies = Seq(
     "org.scala-lang" % "scala-compiler" % "2.10.0",
