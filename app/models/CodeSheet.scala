@@ -18,7 +18,6 @@ object ScalaCodeSheet extends CodeSheet {
         val wholeParses =
           try{
             val wholeAST = toolBox.parse(code)
-            println(showRaw(wholeAST))
             true
         } catch {
           case _: Throwable => false
@@ -34,6 +33,7 @@ object ScalaCodeSheet extends CodeSheet {
               val lineAST = toolBox.parse(line)
               try {
                 lineAST match {
+                  case block: Block => block.children.map(tree => toolBox.eval(Block(toolBox.parse(oldAccu),tree)).toString).mkString(" ; ")
                   case _ : ClassDef => ""
                   case _ : DefDef => ""
                   case ValDef(_, newTermName, _, expr) =>
