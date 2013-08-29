@@ -37,7 +37,7 @@ class WorkSpace(val id: String, initialLanguage: CodeSheet, init: String = "") {
       case _ => println(action)
     }
     codeSheet = language match {
-      case "Scala" => ScalaCodeSheet
+      //case "Scala" => ScalaCodeSheet
       case "JR" => JrCodeSheet
     }
     channel.push(Json.stringify(Json.toJson(CodeChangeResult(newCode, evaluateCode))))

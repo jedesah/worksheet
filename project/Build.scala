@@ -4,18 +4,17 @@ import play.Project._
 
 object ApplicationBuild extends Build {
 
-  val appName         = "repl"
-  val appVersion      = "1.0-SNAPSHOT"
+  val appName         = "CodeSheet"
+  val appVersion      = "0.2-SNAPSHOT"
 
   val appDependencies = Seq(
-    "org.scala-lang" % "scala-compiler" % "2.10.0",
-    jdbc,
-    anorm
+    "org.scala-lang" % "scala-compiler" % "2.10.3-RC1"
   )
 
 
   val main = play.Project(appName, appVersion, appDependencies).settings(
-    // Add your own project settings here      
+    testOptions in Test += Tests.Argument("junitxml", "console"),
+    scalaVersion := "2.10.3-RC1"
   )
 
 }

@@ -38,7 +38,7 @@ class ParserSpec extends Specification {
       val expression = "7 + 4"
       val actual = Parser.parseSingleValidStatement(expression)
       actual must be equalTo simpleMethodCall(7, 4, "+")
-    }
+    }.pendingUntilFixed
     
     "parse a simple assignement" in {
       val assignement = "a := 7"

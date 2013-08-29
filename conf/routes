@@ -4,8 +4,10 @@
 
 # Home page
 GET     /                           	controllers.Application.home_page
+GET     /credit                         controllers.Application.credit
+GET     /about                          controllers.Application.about
 GET     /scala                          controllers.Application.scalaCodeSheet
-GET	    /update/:id             		controllers.Application.update(id)
+GET	    /eval             		        controllers.Application.eval
 GET     /jr                             controllers.Application.jrCodeSheet
 GET     /jr/demo1                       controllers.Application.demo1_JRCodeSheet
 GET     /scala/demo1                    controllers.Application.demo1_ScalaCodeSheet
