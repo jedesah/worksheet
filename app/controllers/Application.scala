@@ -5,6 +5,9 @@ import play.api.mvc._
 import play.api.libs.iteratee._
 import play.api.libs.iteratee.Concurrent
 
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+
 import models._
 //import com.google.api.client.googleapis.auth.oauth2.{GoogleClientSecrets, GoogleAuthorizationCodeTokenRequest}
 
@@ -50,17 +53,20 @@ b
       |val b = a + -6
       |val result = List(1,2,3,4).take(Math.sqrt(b).toInt)""".stripMargin
 
-  val defaultScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet)
+  val defaultScalaWorkSpace = WorkSpaces.create(JrCodeSheet)
   val defaultJRWorkSpace = WorkSpaces.create(JrCodeSheet)
   val demo1JRWorkSpace = WorkSpaces.create(JrCodeSheet, demo1Code)
-  val demo1ScalaWorkSpace = WorkSpaces.create(ScalaCodeSheet, scalaDemoCode)
+  val demo1ScalaWorkSpace = WorkSpaces.create(JrCodeSheet, scalaDemoCode)
   
   def eval = WebSocket.using[String] { implicit request =>
 
     val (enumerator, channel) = Concurrent.broadcast[String]
 
     val in = Iteratee.foreach[String](content => {
-      channel.push(ScalaCodeSheet.computeResults(content).mkString("\n"))
+      val result = future { com.github.jedesah.codesheet.api.ScalaCodeSheet.computeResults(content).mkString("\n") }
+      result onSuccess {
+        case result => channel.push(result)
+      }
     })
     
     (in, enumerator)
