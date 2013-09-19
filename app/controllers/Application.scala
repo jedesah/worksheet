@@ -63,7 +63,7 @@ b
     val (enumerator, channel) = Concurrent.broadcast[String]
 
     val in = Iteratee.foreach[String](content => {
-      val result = future { com.github.jedesah.codesheet.api.ScalaCodeSheet.computeResults(content).mkString("\n") }
+      val result = future { com.github.jedesah.codesheet.api.ScalaCodeSheet.computeResults(content).userRepr }
       result onSuccess {
         case result => channel.push(result)
       }
